@@ -1,0 +1,26 @@
+{
+  "descripcion": "Datos precargados del simulador (atributo datosPrecargados de ApiDispositivoSimulada, RESTR01). Las coordenadas son de ejemplo.",
+  "consumo_bateria_por_min": {
+    "ROBOT": 1.0,
+    "DRONE": 2.0
+  },
+  "recarga_por_min": 2.0,
+  "probabilidad_falla_sensor_por_min": 0.0,
+  "desvio_salida_zona": {
+    "latitud": 0.03,
+    "longitud": 0.0
+  },
+  "rutas": [
+    {
+      "desde": "Cafetería",
+      "hasta": "Rectoría",
+      "puntos": [[4.6395, -74.0825]]
+    },
+    {
+      "desde": "Base de operaciones",
+      "hasta": "Biblioteca",
+      "puntos": [[4.6385, -74.0835]]
+    }
+  ],
+  "video_muestra": "muestra.mp4"
+}

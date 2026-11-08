@@ -1,0 +1,118 @@
+---
+title: Reserva y ejecución de un servicio — Sistema centralizado de robots y drones
+---
+sequenceDiagram
+  %% Transcripción en texto del diagrama de secuencia del Entregable 2 (69 pasos).
+  %% Los números de paso coinciden con la imagen original (autonumber).
+  autonumber
+  actor Admin as Administrador
+  actor Oper as Operador
+  participant Web as Interfaz web
+  participant Srv as Servidor
+  participant BD as Base de datos
+  participant Clima as API de clima
+  participant Disp as Dispositivo (API simulada)
+  participant Cloud as Almacenamiento cloud
+
+  Note over Admin,Cloud: Precondición - el usuario inició sesión y la interfaz muestra solo las funciones de su rol (RF20)
+
+  Admin->>Web: Registra la solicitud (tipo de servicio, fecha, hora, origen y destino)
+  Web->>Srv: Enviar datos de la reserva (RF05)
+  Srv->>BD: Consultar dispositivos disponibles del tipo requerido
+  BD-->>Srv: Lista de dispositivos disponibles
+  break No hay dispositivos disponibles
+    Srv-->>Web: Sin dispositivos para ese horario
+    Web-->>Admin: Sugiere reprogramar la solicitud
+  end
+  Srv->>Disp: Consultar batería y sensores de los disponibles (RF09)
+  Disp-->>Srv: Batería y estado de sensores
+  Srv-->>Web: Dispositivo sugerido con mayor batería (RF22)
+  Web-->>Admin: Muestra el dispositivo sugerido
+  Admin->>Web: Acepta el sugerido o elige otro, y elige el operador responsable
+  Web->>Srv: Asignar dispositivo y operador a la reserva
+  Srv->>BD: Buscar reservas del dispositivo en ese horario
+  BD-->>Srv: Reservas encontradas
+  Srv->>Disp: Consultar batería y sensores del dispositivo elegido
+  Disp-->>Srv: Batería y estado de sensores
+  opt El dispositivo es un drone
+    Srv->>Clima: Consultar pronóstico para la fecha y hora (RF23)
+    Clima-->>Srv: Viento y probabilidad de lluvia
+  end
+  break Cruce de horario (RF06)
+    Srv-->>Web: Rechaza y muestra la reserva en conflicto
+    Web-->>Admin: Mensaje de cruce de horario
+  end
+  break Batería menor al 30% o sensor en falla (RF07)
+    Srv-->>Web: Rechaza e indica el motivo
+    Web-->>Admin: Mensaje con el motivo
+  end
+  break Viento mayor a 30 km/h o lluvia mayor al 60% (RF23)
+    Srv-->>Web: Rechaza por clima
+    Web-->>Admin: Mensaje de clima no apto
+  end
+  Srv->>BD: Guardar reserva con operador (y código de entrega si es robot)
+  BD-->>Srv: Reserva creada
+  Srv-->>Web: Reserva confirmada
+  Web-->>Admin: Muestra la reserva confirmada
+
+  Note over Admin,Cloud: A la hora de inicio de la reserva
+
+  Srv->>Disp: Orden de inicio con origen y destino
+  Disp-->>Srv: Servicio iniciado
+  Srv->>BD: Registrar hora de salida, dispositivo y operador responsable (RF08)
+  par Grabación
+    Disp->>Disp: Grabar el recorrido con la cámara
+  and Monitoreo (RF09, RF10)
+    loop Cada 5 segundos hasta que el dispositivo llegue a la base
+      Srv->>Disp: Solicitar telemetría
+      Disp-->>Srv: Ubicación, batería, sensores y estado
+      Srv->>BD: Guardar punto de la ruta
+      Srv-->>Web: Actualizar panel de monitoreo
+      opt Se supera un umbral o sale de la zona (RF11, RF25)
+        Srv->>BD: Registrar incidencia
+        Srv-->>Web: Alerta con dispositivo y causa
+        Web-->>Oper: Muestra la alerta
+        Web-->>Admin: Muestra la alerta
+        Oper->>Web: Atiende la alerta y revisa la causa
+        Web->>Srv: Registrar atención de la alerta
+        Srv->>BD: Guardar atención de la alerta
+        opt El administrador decide intervenir (RF14)
+          Admin->>Web: Ordena retorno a base o parada de emergencia
+          Web->>Srv: Enviar orden
+          Srv->>Disp: Orden de retorno o parada
+          Disp-->>Srv: Orden recibida
+          Srv->>BD: Registrar la orden como incidencia
+        end
+      end
+      opt El robot llegó al destino (RF24)
+        Disp->>Srv: Código ingresado por quien recibe
+        Srv->>BD: Comparar con el código de la reserva
+        BD-->>Srv: Resultado de la comparación
+        alt Código correcto
+          Srv->>BD: Estado Entregado y hora de entrega
+        else Código incorrecto
+          Srv->>BD: Registrar incidencia de entrega
+          Srv-->>Web: Alerta de entrega no confirmada
+        end
+      end
+    end
+  end
+  Disp->>Srv: Llegada a la base
+  Disp->>Srv: Enviar video MP4 del recorrido
+  Srv->>Cloud: Subir video (RF12)
+  Cloud-->>Srv: Enlace del video
+  Srv->>BD: Asociar el enlace al servicio, registrar hora de regreso y cerrar bitácora (RF08)
+  opt Cumple 30 días o 50 horas desde el último mantenimiento (RF16)
+    Srv-->>Web: Alerta de mantenimiento preventivo
+    Web-->>Oper: Muestra la alerta de mantenimiento
+  end
+  Srv-->>Web: Servicio finalizado
+  Web-->>Admin: Muestra la bitácora cerrada
+  opt El operador revisa el video (RF13)
+    Oper->>Web: Busca y selecciona el video del servicio
+    Web->>Srv: Solicitar video
+    Srv->>Cloud: Obtener video
+    Cloud-->>Srv: Video
+    Srv-->>Web: Video
+    Web-->>Oper: Reproduce el video
+  end

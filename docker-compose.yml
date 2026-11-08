@@ -1,0 +1,72 @@
+# Sistema centralizado de robots y drones — entorno de desarrollo y demo.
+# Uso (PowerShell, en la raíz del proyecto):
+#   Copy-Item .env.example .env      # solo la primera vez
+#   docker compose up --build -d
+# La API queda en http://localhost:8010 (documentación en /docs).
+#
+# Convive con otros proyectos Docker de la misma máquina:
+#   - nombre de proyecto propio: contenedores, volúmenes y red llevan el prefijo "robots-drones", o el de
+#     COMPOSE_PROJECT_NAME si se define en el .env (para correr dos copias del sistema en la misma máquina);
+#   - sin container_name fijos;
+#   - todos los puertos de la máquina salen del .env (PUERTO_BD=5433 y PUERTO_API=8010 por defecto)
+#     y se publican solo en 127.0.0.1 salvo que IP_PUBLICACION diga otra cosa.
+# Dentro de la red de Compose la API usa db:5432; lo que corre en la máquina usa 127.0.0.1:${PUERTO_BD}.
+
+name: robots-drones
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-robots}
+      POSTGRES_USER: ${POSTGRES_USER:-robots}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD en .env}
+      TZ: America/Bogota
+      PGTZ: America/Bogota
+    # Hora de Colombia en el servidor: now() y current_date coinciden con el Reloj de la aplicación.
+    command: ["postgres", "-c", "timezone=America/Bogota", "-c", "log_timezone=America/Bogota"]
+    ports:
+      - "${IP_PUBLICACION:-127.0.0.1}:${PUERTO_BD:-5433}:5432"
+    volumes:
+      - datos_bd:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      target: dev
+    env_file:
+      - .env
+    environment:
+      # Dentro de Compose la base es el servicio "db" en su puerto interno 5432 (no el PUERTO_BD de la máquina).
+      BD_URL: postgresql+psycopg://${POSTGRES_USER:-robots}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-robots}
+      ALMACENAMIENTO_LOCAL_DIR: /datos/videos
+      PENDIENTES_DIR: /datos/pendientes
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Uvicorn escucha en el 8000 del contenedor; en la máquina se publica en PUERTO_API.
+      - "${IP_PUBLICACION:-127.0.0.1}:${PUERTO_API:-8010}:8000"
+    volumes:
+      # El código se monta para correr las pruebas sin reconstruir la imagen.
+      - ./backend:/app
+      - ./docs:/docs:ro
+      - datos_api:/datos
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    # Un solo proceso: el simulador, el monitor y el bus SSE viven en memoria (ver README).
+    restart: unless-stopped
+
+volumes:
+  datos_bd:
+  datos_api:

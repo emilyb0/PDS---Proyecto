@@ -1,0 +1,67 @@
+[project]
+name = "robots-drones-backend"
+version = "0.1.0"
+description = "Backend del sistema centralizado de robots y drones (prototipo de Procesos y Diseño de Software)"
+requires-python = ">=3.12,<3.13"
+# Versiones fijadas y verificadas en Python 3.12.14 (docs/plan.md, sección 4).
+dependencies = [
+    "fastapi==0.162.2",
+    "uvicorn[standard]==0.54.0",
+    "sqlalchemy[asyncio]==2.1.8",
+    "psycopg[binary]==3.3.8",
+    "alembic==1.20.1",
+    "pydantic==2.14.3",
+    "pydantic-settings==2.16.2",
+    "email-validator==2.3.0",
+    "pyjwt==2.15.1",
+    "argon2-cffi==25.1.0",
+    "sse-starlette==3.7.0",
+    "apscheduler==3.11.3",
+    "httpx==0.28.1",
+    "boto3==1.43.126",
+    "tzdata==2026.6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.2.0",
+    "pytest-asyncio==1.4.1.post1",
+    "moto[s3]==5.2.5",
+    "ruff==0.17.4",
+]
+# Solo para regenerar el video de muestra (scripts/generar_video_muestra.py); no va en la imagen.
+video = [
+    "av==19.0.2",
+    "numpy==2.5.4",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "ASYNC", "RUF"]
+# RUF001-003: el español usa caracteres que ruff confunde con ambiguos (–, ×, ‘…’).
+# B008: FastAPI usa llamadas en valores por defecto (Depends, Query).
+ignore = ["RUF001", "RUF002", "RUF003", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+# SQLAlchemy declara __mapper_args__ como diccionario de clase.
+"app/**/modelos.py" = ["RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = [
+    "lenta: prueba lenta (RNF02); solo corre con la opción --lentas",
+]

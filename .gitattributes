@@ -1,0 +1,7 @@
+# Todo el texto con LF, también en Windows: los scripts y el SQL se ejecutan dentro de contenedores Linux
+# y la migración 0001 debe ser una copia byte a byte de docs/modelo/esquema_bd.sql.
+* text=auto eol=lf
+
+*.mp4 binary
+*.png binary
+*.jpg binary

@@ -1,0 +1,192 @@
+# Colección de peticiones de la API — sistema centralizado de robots y drones (entrega 1: 12 RF).
+#
+# Para la extensión "REST Client" de VS Code (humao.rest-client): abra este archivo y pulse "Send Request" sobre
+# cada petición. Primero ejecute los dos inicios de sesión: el resto usa sus tokens.
+# Requiere la API levantada (docker compose up -d) y los datos semilla (python -m app.semilla).
+# Si cambió PUERTO_API en el .env, cambie también @base.
+# Cuando alguien implemente un RF pendiente, agregue aquí sus peticiones (docs/como-continuar.md).
+
+@base = http://localhost:8010
+@admin = {{login_admin.response.body.token}}
+@operador = {{login_operador.response.body.token}}
+@manana = {{$datetime "YYYY-MM-DD" 1 d}}
+@id_dispositivo = 1
+@id_reserva = 1
+@id_bitacora = 1
+@id_alerta = 1
+
+######################################################################## Salud y sesión (RNF06, RF20)
+
+### Estado del servicio
+GET {{base}}/health
+
+### Iniciar sesión como administrador
+# @name login_admin
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "admin@campus.edu.co", "contrasena": "Admin123*" }
+
+### Iniciar sesión como operador
+# @name login_operador
+POST {{base}}/api/auth/login
+Content-Type: application/json
+
+{ "correo": "operador1@campus.edu.co", "contrasena": "Operador123*" }
+
+### Usuario actual, funciones y requisitos activos
+GET {{base}}/api/auth/yo
+Authorization: Bearer {{operador}}
+
+######################################################################## Usuarios (RF18, RNF01)
+
+### Listar operadores activos
+GET {{base}}/api/usuarios?rol=OPERADOR&estado=ACTIVO
+Authorization: Bearer {{admin}}
+
+### Registrar usuario
+POST {{base}}/api/usuarios
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "nombre": "Laura Lozano", "correo_institucional": "laura.lozano@campus.edu.co", "contrasena": "Clave1234*", "rol": "OPERADOR" }
+
+### Cambiar nombre o rol (RNF01)
+PATCH {{base}}/api/usuarios/5
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "nombre": "Laura Lozano Ruiz" }
+
+### El operador no puede registrar usuarios (RNF01): 403
+POST {{base}}/api/usuarios
+Authorization: Bearer {{operador}}
+Content-Type: application/json
+
+{ "nombre": "Otro", "correo_institucional": "otro@campus.edu.co", "contrasena": "Clave1234*", "rol": "OPERADOR" }
+
+######################################################################## Dispositivos (RF01, RF04)
+
+### Inventario (filtros tipo y estado)
+GET {{base}}/api/dispositivos?tipo=ROBOT
+Authorization: Bearer {{operador}}
+
+### Detalle con sensores, servicio activo y última telemetría
+GET {{base}}/api/dispositivos/{{id_dispositivo}}
+Authorization: Bearer {{operador}}
+
+### Registrar robot (sin sensores: se crean los del tipo)
+POST {{base}}/api/dispositivos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo": "ROBOT", "numero_serie": "R-010", "modelo": "Rover Mk3", "capacidad_carga_kg": 6 }
+
+### Registrar drone con sus sensores
+POST {{base}}/api/dispositivos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo": "DRONE", "numero_serie": "D-010", "modelo": "Halcón X6", "autonomia_vuelo_min": 30, "sensores": ["GPS", "Cámara", "IMU"] }
+
+######################################################################## Ubicaciones y reservas (RF05–RF07)
+
+### Catálogo de origen y destino
+GET {{base}}/api/ubicaciones
+Authorization: Bearer {{operador}}
+
+### Crear reserva (robot de la Cafetería a la Rectoría); el robot recibe un código de 4 dígitos
+POST {{base}}/api/reservas
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo_servicio": "PEDIDO_CAFETERIA", "fecha": "{{manana}}", "hora_inicio": "11:00", "duracion_estimada_min": 20,
+  "id_origen": 2, "id_destino": 3, "id_dispositivo": 1, "id_operador": 2 }
+
+### Cruce de horario (RF06): la misma hora con el mismo robot responde 409 con la reserva en conflicto
+POST {{base}}/api/reservas
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo_servicio": "ENTREGA_DOCUMENTOS", "fecha": "{{manana}}", "hora_inicio": "11:10", "duracion_estimada_min": 20,
+  "id_origen": 3, "id_destino": 4, "id_dispositivo": 1, "id_operador": 3 }
+
+### Robot con el LIDAR en falla (RF07): 409 DISPOSITIVO_NO_APTO
+POST {{base}}/api/reservas
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo_servicio": "PEDIDO_CAFETERIA", "fecha": "{{manana}}", "hora_inicio": "16:00", "duracion_estimada_min": 20,
+  "id_origen": 2, "id_destino": 3, "id_dispositivo": 4, "id_operador": 2 }
+
+### Robot con batería baja (RF07): 409 DISPOSITIVO_NO_APTO
+POST {{base}}/api/reservas
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo_servicio": "PEDIDO_CAFETERIA", "fecha": "{{manana}}", "hora_inicio": "16:30", "duracion_estimada_min": 20,
+  "id_origen": 2, "id_destino": 3, "id_dispositivo": 3, "id_operador": 2 }
+
+### Listar reservas (filtros fecha, estado, id_dispositivo)
+GET {{base}}/api/reservas?estado=PROGRAMADA
+Authorization: Bearer {{operador}}
+
+### Detalle de reserva (el código de entrega solo lo ve el administrador)
+GET {{base}}/api/reservas/{{id_reserva}}
+Authorization: Bearer {{admin}}
+
+######################################################################## Servicio en curso (RF08–RF12)
+
+### Foto del monitoreo (después se actualiza por SSE: GET /api/monitoreo/stream?token=...)
+GET {{base}}/api/monitoreo
+Authorization: Bearer {{operador}}
+
+### Bitácoras (filtros desde, hasta, id_dispositivo, estado)
+GET {{base}}/api/bitacoras?estado=FINALIZADO
+Authorization: Bearer {{operador}}
+
+### Detalle de bitácora: incidencias y video (RF12)
+GET {{base}}/api/bitacoras/{{id_bitacora}}
+Authorization: Bearer {{operador}}
+
+### Ruta recorrida con las lecturas de los sensores
+GET {{base}}/api/bitacoras/{{id_bitacora}}/ruta
+Authorization: Bearer {{operador}}
+
+### Alertas de servicio (RF11)
+GET {{base}}/api/alertas?tipo=SERVICIO
+Authorization: Bearer {{operador}}
+
+### Detalle de alerta
+GET {{base}}/api/alertas/{{id_alerta}}
+Authorization: Bearer {{operador}}
+
+######################################################################## Auditoría (RNF09)
+
+### Historial de auditoría (filtros id_usuario, entidad, accion, desde, hasta)
+GET {{base}}/api/auditoria?entidad=reserva
+Authorization: Bearer {{admin}}
+
+######################################################################## Controles de demo (MODO_DEMO=true, solo administrador)
+
+### Iniciar ya una reserva programada
+POST {{base}}/api/demo/reservas/{{id_reserva}}/iniciar
+Authorization: Bearer {{admin}}
+
+### Batería baja en un dispositivo (BATERIA, FALLA_SENSOR, REPARAR_SENSOR, PAUSAR, REANUDAR)
+POST {{base}}/api/demo/dispositivos/{{id_dispositivo}}/eventos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo": "BATERIA", "nivel": 19 }
+
+### Sensor en falla
+POST {{base}}/api/demo/dispositivos/{{id_dispositivo}}/eventos
+Authorization: Bearer {{admin}}
+Content-Type: application/json
+
+{ "tipo": "FALLA_SENSOR", "sensor": "LIDAR" }
+
+### Ejecutar ya una tarea: iniciar-reservas, monitoreo o reintento-subidas
+POST {{base}}/api/demo/tareas/reintento-subidas/ejecutar
+Authorization: Bearer {{admin}}

@@ -1,0 +1,441 @@
+@startuml diagrama_clases
+' ==========================================================
+'  Sistema centralizado de robots y drones
+'  Diagrama de clases - Procesos y Diseño de Software
+'  Trazabilidad: RF01-RF27, RNF01, RNF05, RNF09, RESTR01, RESTR04
+' ==========================================================
+
+skinparam dpi 150
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam classFontStyle bold
+skinparam ArrowColor #444444
+skinparam ClassBorderColor #555555
+skinparam ClassBackgroundColor #FFFFFF
+skinparam PackageBorderColor #999999
+skinparam PackageFontStyle bold
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #C9B458
+skinparam nodesep 45
+skinparam ranksep 60
+hide empty members
+hide circle
+
+title Diagrama de clases — Sistema centralizado de robots y drones
+
+' ---------------------------------------------------------- Usuarios
+abstract class Usuario #F1ECFA {
+  - id : int
+  - nombre : String
+  - correoInstitucional : String {único}
+  - contrasenaHash : String
+  - estado : EstadoUsuario
+  - fechaCreacion : DateTime
+  + verificarContrasena(contrasena : String) : boolean
+  + estaActivo() : boolean
+}
+
+class Administrador #F1ECFA {
+  + registrarUsuario(nombre, correo, clave, rol : Rol) : Usuario
+  + desactivarUsuario(u : Usuario) : void
+}
+
+class Operador #F1ECFA
+
+class RegistroAuditoria #F1ECFA {
+  - id : int
+  - fechaHora : DateTime
+  - accion : AccionAuditoria
+  - entidad : String
+  - idEntidad : int
+}
+
+' ---------------------------------------------------------- Dispositivos
+abstract class Dispositivo #E8F2FB {
+  - id : int
+  - numeroSerie : String {único}
+  - modelo : String
+  - estado : EstadoDispositivo
+  - nivelBateria : int
+  - horasUsoDesdeMantenimiento : double
+  - fechaRegistro : Date
+  - fechaBaja : Date [0..1]
+  - motivoBaja : String [0..1]
+  + editar(modelo : String, estado : EstadoDispositivo) : void
+  + darDeBaja(motivo : String, fecha : Date) : void
+  + tieneSensorEnFalla() : boolean
+  + estaApto() : boolean
+  + requiereMantenimiento() : boolean
+}
+
+class Robot #E8F2FB {
+  - capacidadCargaKg : double
+}
+
+class Drone #E8F2FB {
+  - autonomiaVueloMin : int
+}
+
+class Sensor #E8F2FB {
+  - id : int
+  - nombre : String
+  - estado : EstadoSensor
+}
+
+class Mantenimiento #E8F2FB {
+  - id : int
+  - tipo : TipoMantenimiento
+  - descripcion : String
+  - fechaInicio : Date
+  - fechaFin : Date [0..1]
+  + cerrar(fechaFin : Date) : void
+}
+
+' ---------------------------------------------------------- Reservas y servicios
+class Reserva #E7F5EC {
+  - id : int
+  - tipoServicio : TipoServicio
+  - fecha : Date
+  - horaInicio : Time
+  - duracionEstimadaMin : int
+  - origen : Ubicacion
+  - destino : Ubicacion
+  - estado : EstadoReserva
+  - codigoEntrega : String [0..1]
+  - motivoCambio : String [0..1]
+  + horaFin() : Time
+  + seCruzaCon(otra : Reserva) : boolean
+  + generarCodigoEntrega() : String
+  + cancelar(motivo : String) : void
+  + reprogramar(fecha, hora, motivo) : void
+}
+
+class BitacoraServicio #E7F5EC {
+  - id : int
+  - horaSalida : DateTime
+  - horaRegreso : DateTime [0..1]
+  - horaEntrega : DateTime [0..1]
+  - estado : EstadoServicio
+  + registrarPunto(t : RegistroTelemetria) : void
+  + registrarIncidencia(tipo, desc) : Incidencia
+  + confirmarEntrega(codigo : String) : boolean
+  + cerrar(horaRegreso : DateTime) : void
+  + horasUso() : double
+}
+
+class RegistroTelemetria #E7F5EC {
+  - fechaHora : DateTime
+  - ubicacion : Ubicacion
+  - nivelBateria : int
+  - estadoSensores : Map<String, EstadoSensor>
+  - estadoServicio : String
+}
+
+class Incidencia #E7F5EC {
+  - id : int
+  - fechaHora : DateTime
+  - tipo : TipoIncidencia
+  - descripcion : String
+  - ubicacion : Ubicacion [0..1]
+}
+
+class ZonaOperacion #E7F5EC {
+  - id : int
+  - nombre : String
+  - limites : List<Ubicacion>
+  + contiene(u : Ubicacion) : boolean
+}
+
+class Ubicacion <<dataType>> #E7F5EC {
+  - nombre : String
+  - latitud : double
+  - longitud : double
+}
+
+class ReporteDispositivo #E7F5EC {
+  - fechaDesde : Date
+  - fechaHasta : Date
+  - numeroServicios : int
+  - horasUso : double
+  - numeroIncidencias : int
+  + {static} generar(d, desde, hasta) : ReporteDispositivo
+}
+
+' ---------------------------------------------------------- Alertas
+abstract class Alerta #FCECE5 {
+  - id : int
+  - fechaHora : DateTime
+  - descripcion : String
+}
+
+class AlertaServicio #FCECE5 {
+  - causa : CausaAlerta
+  - atendida : boolean
+  + registrarAtencion(op, causa, obs) : AtencionAlerta
+}
+
+class AlertaMantenimiento #FCECE5 {
+  - diasDesdeUltimo : int
+  - horasDesdeUltimo : double
+}
+
+class AtencionAlerta #FCECE5 {
+  - fechaHora : DateTime
+  - causaRevisada : String
+  - observaciones : String
+}
+
+' ---------------------------------------------------------- Videos
+class Video #FFF5DC {
+  - id : int
+  - url : String
+  - formato : String = "MP4"
+  - fechaGrabacion : DateTime
+  - duracionSeg : int
+  - fechaEliminacion : Date [0..1]
+  + estaVencido(hoy : Date) : boolean
+}
+
+' ---------------------------------------------------------- Control
+class GestorReservas #EDEDED {
+  + crearReserva(datos, admin) : Reserva
+  + sugerirDispositivo(r : Reserva) : Dispositivo
+  + validarCruceHorario(d, r) : Reserva [0..1]
+  + validarBateriaYSensores(d) : boolean
+  + validarClima(d : Drone, r) : boolean
+  + cancelarReserva(r, motivo) : void
+  + reprogramarReserva(r, fecha, hora, motivo) : void
+}
+
+class MonitorServicios #EDEDED {
+  - intervaloSeg : int = 5
+  + iniciarServicio(r : Reserva) : BitacoraServicio
+  + actualizarMonitoreo() : void
+  + evaluarUmbrales(b, t : RegistroTelemetria) : void
+  + verificarZona(b, t : RegistroTelemetria) : void
+  + enviarOrden(b, tipo : TipoOrden, admin) : void
+  + recibirCodigoEntrega(b, codigo : String) : boolean
+  + finalizarServicio(b) : void
+}
+
+class GestorVideos #EDEDED {
+  + almacenarVideo(b, archivo : byte[]) : Video
+  + buscarVideos(fecha, d, tipo) : List<Video>
+  + eliminarVideosVencidos() : void
+}
+
+' ---------------------------------------------------------- Externos
+interface IApiDispositivo <<interface>> #FBE7EE {
+  + obtenerTelemetria(numeroSerie : String) : RegistroTelemetria
+  + enviarOrdenInicio(r : Reserva) : void
+  + enviarOrden(tipo : TipoOrden) : void
+  + leerCodigoEntrega() : String
+  + descargarVideo() : byte[]
+}
+
+class ApiDispositivoSimulada #FBE7EE {
+  - datosPrecargados : String
+}
+
+interface IServicioClima <<interface>> #FBE7EE {
+  + consultarPronostico(lugar, fechaHora) : Pronostico
+}
+
+class Pronostico #FBE7EE {
+  - velocidadVientoKmh : double
+  - probabilidadLluvia : int
+  + esAptoParaVuelo() : boolean
+}
+
+interface IAlmacenamientoCloud <<interface>> #FBE7EE {
+  + subir(archivo : byte[], nombre : String) : String
+  + obtener(url : String) : byte[]
+  + eliminar(url : String) : void
+}
+
+' ---------------------------------------------------------- Enumeraciones
+enum Rol #FFFFFF {
+  ADMINISTRADOR
+  OPERADOR
+}
+enum EstadoUsuario #FFFFFF {
+  ACTIVO
+  INACTIVO
+}
+enum AccionAuditoria #FFFFFF {
+  CREAR
+  EDITAR
+  BAJA
+}
+enum EstadoDispositivo #FFFFFF {
+  DISPONIBLE
+  EN_SERVICIO
+  EN_CARGA
+  EN_MANTENIMIENTO
+  FUERA_DE_SERVICIO
+}
+enum EstadoSensor #FFFFFF {
+  OK
+  FALLA
+}
+enum TipoMantenimiento #FFFFFF {
+  PREVENTIVO
+  CORRECTIVO
+}
+enum TipoServicio #FFFFFF {
+  ENTREGA_DOCUMENTOS
+  PEDIDO_CAFETERIA
+  GRABACION_EVENTO
+}
+enum EstadoReserva #FFFFFF {
+  PROGRAMADA
+  EN_CURSO
+  FINALIZADA
+  CANCELADA
+}
+enum EstadoServicio #FFFFFF {
+  EN_CURSO
+  ENTREGADO
+  RETORNANDO
+  FINALIZADO
+}
+enum TipoIncidencia #FFFFFF {
+  BATERIA_BAJA
+  SENSOR_EN_FALLA
+  RETRASO
+  SALIDA_DE_ZONA
+  ORDEN_RETORNO
+  PARADA_EMERGENCIA
+  ENTREGA_NO_CONFIRMADA
+}
+enum CausaAlerta #FFFFFF {
+  BATERIA_BAJA
+  SENSOR_EN_FALLA
+  RETRASO
+  SALIDA_DE_ZONA
+}
+enum TipoOrden #FFFFFF {
+  RETORNO_BASE
+  PARADA_EMERGENCIA
+}
+
+' ========================================================== Relaciones
+
+' Herencia
+Usuario <|-- Administrador
+Usuario <|-- Operador
+Dispositivo <|-- Robot
+Dispositivo <|-- Drone
+Alerta <|-- AlertaServicio
+Alerta <|-- AlertaMantenimiento
+IApiDispositivo <|.. ApiDispositivoSimulada
+
+' Usuarios
+Usuario "1" -- "0..*" RegistroAuditoria : realiza >
+
+' Dispositivos
+Dispositivo "1" *-- "1..*" Sensor : tiene >
+Dispositivo "1" -- "0..*" Mantenimiento : recibe >
+Operador "1" -- "0..*" Mantenimiento : responsable de >
+
+' Reservas
+Administrador "1" -- "0..*" Reserva : crea >
+Operador "1" -- "0..*" Reserva : responsable de >
+Reserva "0..*" -- "1" Dispositivo : asignado a >
+Reserva "1" -- "0..1" BitacoraServicio : genera >
+
+' Bitácora
+BitacoraServicio "1" *-- "0..*" RegistroTelemetria : ruta >
+BitacoraServicio "1" *-- "0..*" Incidencia : registra >
+BitacoraServicio "1" -- "0..1" Video : graba >
+BitacoraServicio "1" -- "0..*" AlertaServicio : origina >
+Incidencia "1" -- "0..1" AlertaServicio : notifica >
+
+' Alertas
+Alerta "0..*" --> "1" Dispositivo : sobre >
+AlertaServicio "1" -- "0..1" AtencionAlerta : atendida en >
+Operador "1" -- "0..*" AtencionAlerta : registra >
+
+' Reportes
+ReporteDispositivo "0..*" --> "1" Dispositivo : de >
+ReporteDispositivo ..> BitacoraServicio : consulta >
+
+' Control -> dominio / externos
+GestorReservas ..> Reserva : crea >
+GestorReservas --> IServicioClima : RF23 >
+GestorReservas --> IApiDispositivo : RF07, RF22 >
+IServicioClima ..> Pronostico : retorna >
+MonitorServicios ..> BitacoraServicio : actualiza >
+MonitorServicios --> IApiDispositivo : RF09, RF14, RF24 >
+MonitorServicios --> "1" ZonaOperacion : RF25 >
+GestorVideos ..> Video : crea >
+GestorVideos --> IAlmacenamientoCloud : RF12, RF26 >
+
+' ========================================================== Notas
+note right of Dispositivo
+  <b>estaApto()</b>: batería ≥ 30 % y ningún
+  sensor en falla (RF07).
+  <b>requiereMantenimiento()</b>: 30 días o
+  50 h desde el último mantenimiento (RF16).
+  <b>darDeBaja()</b>: solo sin reservas
+  pendientes (RF03, RNF01).
+end note
+
+note bottom of Reserva
+  {GRABACION_EVENTO ⇒ dispositivo es Drone}
+  {codigoEntrega de 4 dígitos solo si
+   el dispositivo es Robot (RF24)}
+end note
+
+note bottom of Video
+  Se elimina del almacenamiento a los
+  3 meses de grabado (RF26, RNF04).
+end note
+
+note bottom of ApiDispositivoSimulada
+  En el demo los datos del hardware
+  se emulan (RESTR01).
+end note
+
+note bottom of IAlmacenamientoCloud
+  Firebase Storage o AWS S3,
+  capa gratuita (RESTR04).
+end note
+
+note bottom of Pronostico
+  Apto si viento ≤ 30 km/h y
+  lluvia ≤ 60 % (RF23).
+end note
+
+' ========================================================== Distribución
+' Enumeraciones en cuadrícula debajo del modelo (enlaces ocultos)
+AtencionAlerta -[hidden]down- TipoServicio
+Rol -[hidden]right- EstadoUsuario
+EstadoUsuario -[hidden]right- AccionAuditoria
+AccionAuditoria -[hidden]right- EstadoDispositivo
+EstadoDispositivo -[hidden]right- EstadoSensor
+EstadoSensor -[hidden]right- TipoMantenimiento
+TipoMantenimiento -[hidden]right- TipoServicio
+TipoServicio -[hidden]right- EstadoReserva
+EstadoReserva -[hidden]right- EstadoServicio
+EstadoServicio -[hidden]right- TipoIncidencia
+TipoIncidencia -[hidden]right- CausaAlerta
+CausaAlerta -[hidden]right- TipoOrden
+
+skinparam LegendBackgroundColor #FFFFFF
+skinparam LegendBorderColor #999999
+legend right
+  <b>Módulos</b>
+  <back:#F1ECFA><color:#F1ECFA>████</color></back>  Usuarios y seguridad
+  <back:#E8F2FB><color:#E8F2FB>████</color></back>  Inventario de dispositivos
+  <back:#E7F5EC><color:#E7F5EC>████</color></back>  Reservas, bitácora y monitoreo
+  <back:#FCECE5><color:#FCECE5>████</color></back>  Alertas
+  <back:#FFF5DC><color:#FFF5DC>████</color></back>  Videos
+  <back:#EDEDED><color:#EDEDED>████</color></back>  Lógica del sistema (control)
+  <back:#FBE7EE><color:#FBE7EE>████</color></back>  Servicios externos
+  <back:#FFFFFF><color:#FFFFFF>████</color></back>  Enumeraciones
+end legend
+
+@enduml

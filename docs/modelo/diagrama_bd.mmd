@@ -1,0 +1,237 @@
+---
+title: Base de datos — Sistema centralizado de robots y drones
+config:
+  layout: elk
+---
+erDiagram
+  %% =====================================================================
+  %%  Diagrama entidad-relación (PostgreSQL 16) en Mermaid
+  %%  Fuente: esquema_bd.sql · derivado del diagrama de clases
+  %% ---
+  %%  Convenciones
+  %%   PK llave primaria · FK llave foránea · UK valor único
+  %%   Las columnas sin "NULL" en el comentario son NOT NULL.
+  %%   Línea continua  = relación identificadora (la FK es parte de la PK).
+  %%   Línea punteada  = relación no identificadora.
+  %% ---
+  %%  Reglas que no se dibujan (están en esquema_bd.sql)
+  %%   - reserva: EXCLUDE sobre (id_dispositivo, horario) para reservas
+  %%     PROGRAMADA o EN_CURSO -> sin cruces de horario (RF06, RF21).
+  %%   - reserva: trigger -> la crea un ADMINISTRADOR activo, responde un
+  %%     OPERADOR activo, GRABACION_EVENTO solo con DRONE, codigo_entrega
+  %%     obligatorio solo en ROBOT (RF24).
+  %%   - dispositivo: CHECK de subtipo (carga = ROBOT, vuelo = DRONE) y
+  %%     trigger que impide la baja con reservas pendientes (RF03).
+  %%   - bitacora_servicio: FINALIZADO <=> hora_regreso registrada.
+  %%   - RF17 se calcula con la función reporte_dispositivo(id, desde, hasta).
+  %% =====================================================================
+  direction TB
+
+  %% ---------------------------------------------- Usuarios y seguridad
+  usuario {
+    INT id_usuario PK
+    VARCHAR(100) nombre
+    VARCHAR(120) correo_institucional UK
+    VARCHAR(255) contrasena_hash "cifrada (RNF05)"
+    rol_usuario rol "ADMINISTRADOR o OPERADOR"
+    estado_usuario estado "ACTIVO o INACTIVO"
+    TIMESTAMP fecha_creacion
+  }
+
+  registro_auditoria {
+    BIGINT id_auditoria PK
+    INT id_usuario FK
+    TIMESTAMP fecha_hora
+    accion_auditoria accion "CREAR, EDITAR o BAJA"
+    VARCHAR(50) entidad "tabla afectada"
+    INT id_entidad "registro afectado"
+  }
+
+  %% ---------------------------------------------- Inventario de dispositivos
+  dispositivo {
+    INT id_dispositivo PK
+    tipo_dispositivo tipo "ROBOT o DRONE"
+    VARCHAR(50) numero_serie UK
+    VARCHAR(80) modelo
+    estado_dispositivo estado
+    SMALLINT nivel_bateria "0 a 100"
+    NUMERIC(7,2) horas_uso_desde_mant "RF16"
+    NUMERIC(6,2) capacidad_carga_kg "solo ROBOT · NULL"
+    SMALLINT autonomia_vuelo_min "solo DRONE · NULL"
+    DATE fecha_registro
+    DATE fecha_baja "RF03 · NULL"
+    VARCHAR(255) motivo_baja "NULL"
+  }
+
+  sensor {
+    INT id_sensor PK
+    INT id_dispositivo FK
+    VARCHAR(60) nombre
+    estado_sensor estado "OK o FALLA"
+  }
+
+  mantenimiento {
+    INT id_mantenimiento PK
+    INT id_dispositivo FK
+    INT id_operador FK "responsable"
+    tipo_mantenimiento tipo "PREVENTIVO o CORRECTIVO"
+    TEXT descripcion
+    DATE fecha_inicio
+    DATE fecha_fin "NULL mientras dura"
+  }
+
+  %% ---------------------------------------------- Reservas, bitácora y monitoreo
+  ubicacion {
+    INT id_ubicacion PK
+    VARCHAR(80) nombre UK
+    NUMERIC(9,6) latitud
+    NUMERIC(9,6) longitud
+  }
+
+  zona_operacion {
+    INT id_zona PK
+    VARCHAR(80) nombre UK
+  }
+
+  vertice_zona {
+    INT id_zona PK, FK
+    SMALLINT orden PK
+    NUMERIC(9,6) latitud
+    NUMERIC(9,6) longitud
+  }
+
+  reserva {
+    INT id_reserva PK
+    INT id_administrador FK "rol ADMINISTRADOR"
+    INT id_operador FK "rol OPERADOR"
+    INT id_dispositivo FK
+    INT id_origen FK
+    INT id_destino FK
+    tipo_servicio tipo_servicio "GRABACION_EVENTO solo DRONE"
+    DATE fecha
+    TIME hora_inicio
+    SMALLINT duracion_estimada_min
+    TSRANGE horario "calculado · sin cruces (RF06)"
+    estado_reserva estado
+    CHAR(4) codigo_entrega "solo ROBOT (RF24) · NULL"
+    VARCHAR(255) motivo_cambio "obligatorio si se cancela · NULL"
+    TIMESTAMP fecha_creacion
+  }
+
+  bitacora_servicio {
+    INT id_bitacora PK
+    INT id_reserva FK, UK "una por reserva"
+    TIMESTAMP hora_salida
+    TIMESTAMP hora_regreso "NULL hasta cerrar"
+    TIMESTAMP hora_entrega "RF24 · NULL"
+    estado_servicio estado
+  }
+
+  registro_telemetria {
+    BIGINT id_telemetria PK
+    INT id_bitacora FK
+    TIMESTAMP fecha_hora
+    NUMERIC(9,6) latitud
+    NUMERIC(9,6) longitud
+    SMALLINT nivel_bateria
+    VARCHAR(40) estado_servicio "según la API del dispositivo"
+  }
+
+  lectura_sensor {
+    BIGINT id_telemetria PK, FK
+    INT id_sensor PK, FK
+    estado_sensor estado "OK o FALLA"
+  }
+
+  incidencia {
+    INT id_incidencia PK
+    INT id_bitacora FK
+    TIMESTAMP fecha_hora
+    tipo_incidencia tipo
+    TEXT descripcion
+    NUMERIC(9,6) latitud "obligatoria si SALIDA_DE_ZONA · NULL"
+    NUMERIC(9,6) longitud "NULL"
+  }
+
+  %% ---------------------------------------------- Alertas
+  alerta {
+    INT id_alerta PK
+    tipo_alerta tipo "SERVICIO o MANTENIMIENTO"
+    INT id_dispositivo FK
+    TIMESTAMP fecha_hora
+    VARCHAR(255) descripcion
+  }
+
+  alerta_servicio {
+    INT id_alerta PK, FK
+    INT id_incidencia FK, UK
+    causa_alerta causa
+  }
+
+  alerta_mantenimiento {
+    INT id_alerta PK, FK
+    SMALLINT dias_desde_ultimo
+    NUMERIC(7,2) horas_desde_ultimo
+  }
+
+  atencion_alerta {
+    INT id_atencion PK
+    INT id_alerta FK, UK "solo alertas de servicio (RF27)"
+    INT id_operador FK
+    TIMESTAMP fecha_hora
+    VARCHAR(255) causa_revisada
+    TEXT observaciones "NULL"
+  }
+
+  %% ---------------------------------------------- Videos
+  video {
+    INT id_video PK
+    INT id_bitacora FK, UK
+    VARCHAR(500) url "Firebase Storage o S3"
+    VARCHAR(10) formato "MP4"
+    TIMESTAMP fecha_grabacion
+    INT duracion_seg
+    DATE fecha_eliminacion "a los 3 meses (RF26) · NULL"
+  }
+
+  %% ---------------------------------------------- Relaciones
+  usuario           ||..o{ registro_auditoria   : realiza
+  usuario           ||..o{ reserva              : "crea (id_administrador)"
+  usuario           ||..o{ reserva              : "responsable (id_operador)"
+  usuario           ||..o{ mantenimiento        : responsable
+  usuario           ||..o{ atencion_alerta      : registra
+
+  dispositivo       ||..|{ sensor               : tiene
+  dispositivo       ||..o{ mantenimiento        : recibe
+  dispositivo       ||..o{ reserva              : "asignado a"
+  dispositivo       ||..o{ alerta               : sobre
+
+  ubicacion         ||..o{ reserva              : origen
+  ubicacion         ||..o{ reserva              : destino
+  zona_operacion    ||--|{ vertice_zona         : "límite"
+
+  reserva           ||..o| bitacora_servicio    : genera
+  bitacora_servicio ||..o{ registro_telemetria  : ruta
+  registro_telemetria ||--|{ lectura_sensor     : incluye
+  sensor            ||--o{ lectura_sensor       : "leído en"
+  bitacora_servicio ||..o{ incidencia           : registra
+  bitacora_servicio ||..o| video                : graba
+
+  alerta            ||--o| alerta_servicio      : "es un"
+  alerta            ||--o| alerta_mantenimiento : "es un"
+  incidencia        ||..o| alerta_servicio      : notifica
+  alerta_servicio   ||..o| atencion_alerta      : "atendida en"
+
+  %% ---------------------------------------------- Colores por módulo
+  %% (si tu editor de Mermaid no los reconoce, borra desde aquí hasta el final)
+  classDef usuarios     fill:#F1ECFA,stroke:#555555
+  classDef dispositivos fill:#E8F2FB,stroke:#555555
+  classDef operacion    fill:#E7F5EC,stroke:#555555
+  classDef alertas      fill:#FCECE5,stroke:#555555
+  classDef videos       fill:#FFF5DC,stroke:#555555
+
+  class usuario,registro_auditoria usuarios
+  class dispositivo,sensor,mantenimiento dispositivos
+  class ubicacion,zona_operacion,vertice_zona,reserva,bitacora_servicio,registro_telemetria,lectura_sensor,incidencia operacion
+  class alerta,alerta_servicio,alerta_mantenimiento,atencion_alerta alertas
+  class video videos
