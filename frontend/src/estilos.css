@@ -1316,6 +1316,26 @@ input[readonly] {
   gap: 6px;
 }
 
+.boton--peligro:hover:not(:disabled) {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+}
+
+.fila-confirmar td {
+  background: var(--acento-suave);
+}
+
+.confirmar-baja {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 0;
+  border-left: 3px solid var(--acento);
+  padding-left: 10px;
+}
+
 .paginacion {
   display: flex;
   align-items: center;

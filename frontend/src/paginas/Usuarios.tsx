@@ -83,9 +83,33 @@ function FormularioNuevo({ alCrear }: { alCrear: () => void }) {
   );
 }
 
-function FilaUsuario({ u, propio, alGuardar }: { u: Usuario; propio: boolean; alGuardar: () => void }) {
+function FilaUsuario({ u, propio, puedeDesactivar, alGuardar }: {
+  u: Usuario;
+  propio: boolean;
+  puedeDesactivar: boolean;
+  alGuardar: () => void;
+}) {
   const { avisar } = useAvisos();
   const [editando, setEditando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [desactivando, setDesactivando] = useState(false);
+  const [errorBaja, setErrorBaja] = useState<ErrorApi | null>(null);
+
+  // RF19: el usuario pasa a INACTIVO y no puede volver a entrar; sus reservas, bitácoras y auditoría se conservan.
+  const desactivar = async () => {
+    setDesactivando(true);
+    setErrorBaja(null);
+    try {
+      await api.desactivarUsuario(u.id_usuario);
+      avisar({ tipo: 'exito', rotulo: 'RF19 · Usuario desactivado', titulo: u.nombre, texto: 'Ya no puede iniciar sesión.' });
+      setConfirmando(false);
+      alGuardar();
+    } catch (e) {
+      if (e instanceof ErrorApi) setErrorBaja(e);
+    } finally {
+      setDesactivando(false);
+    }
+  };
   const [nombre, setNombre] = useState(u.nombre);
   const [rol, setRol] = useState<Rol>(u.rol);
   const [error, setError] = useState<ErrorApi | null>(null);
@@ -114,25 +138,64 @@ function FilaUsuario({ u, propio, alGuardar }: { u: Usuario; propio: boolean; al
   };
 
   if (!editando) {
+    const desactivable = puedeDesactivar && u.estado === 'ACTIVO' && !propio;
     return (
-      <tr>
-        <td className="mono">{u.id_usuario}</td>
-        <td>
-          {u.nombre}
-          {propio && <span className="tenue"> (usted)</span>}
-        </td>
-        <td className="mono">{u.correo_institucional}</td>
-        <td>{TEXTOS.rol[u.rol]}</td>
-        <td>
-          <Estado grupo="estadoUsuario" valor={u.estado} />
-        </td>
-        <td className="mono">{fechaHora(u.fecha_creacion)}</td>
-        <td className="num">
-          <button className="boton boton--fantasma boton--chico" onClick={() => setEditando(true)}>
-            Editar
-          </button>
-        </td>
-      </tr>
+      <>
+        <tr className={confirmando ? 'fila-confirmar' : ''}>
+          <td className="mono">{u.id_usuario}</td>
+          <td>
+            {u.nombre}
+            {propio && <span className="tenue"> (usted)</span>}
+          </td>
+          <td className="mono">{u.correo_institucional}</td>
+          <td>{TEXTOS.rol[u.rol]}</td>
+          <td>
+            <Estado grupo="estadoUsuario" valor={u.estado} />
+          </td>
+          <td className="mono">{fechaHora(u.fecha_creacion)}</td>
+          <td className="num">
+            <div className="acciones-fila">
+              <button className="boton boton--fantasma boton--chico" onClick={() => setEditando(true)}>
+                Editar
+              </button>
+              {desactivable && !confirmando && (
+                <button className="boton boton--fantasma boton--chico boton--peligro" onClick={() => setConfirmando(true)}>
+                  Desactivar
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
+        {confirmando && (
+          <tr className="fila-confirmar">
+            <td colSpan={7}>
+              <div className="confirmar-baja">
+                <div>
+                  <strong>¿Desactivar a {u.nombre}?</strong>
+                  <div className="tenue">
+                    No podrá iniciar sesión desde este momento. Sus reservas, bitácoras y el historial de auditoría se conservan.
+                  </div>
+                </div>
+                <div className="acciones-fila">
+                  <button className="boton boton--acento boton--chico" onClick={desactivar} disabled={desactivando}>
+                    {desactivando ? 'Desactivando…' : 'Sí, desactivar'}
+                  </button>
+                  <button
+                    className="boton boton--fantasma boton--chico"
+                    onClick={() => {
+                      setConfirmando(false);
+                      setErrorBaja(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+              <ErrorApiVista error={errorBaja} />
+            </td>
+          </tr>
+        )}
+      </>
     );
   }
   return (
@@ -184,7 +247,7 @@ function FilaUsuario({ u, propio, alGuardar }: { u: Usuario; propio: boolean; al
 }
 
 export function Usuarios() {
-  const { sesion } = useSesion();
+  const { sesion, puede } = useSesion();
   const [rol, setRol] = useState('');
   const [estado, setEstado] = useState('');
   const [desp, setDesp] = useState(0);
@@ -245,7 +308,13 @@ export function Usuarios() {
                 </thead>
                 <tbody>
                   {lista.datos?.items.map((u) => (
-                    <FilaUsuario key={`${u.id_usuario}-${u.nombre}-${u.rol}`} u={u} propio={u.id_usuario === sesion?.usuario.id_usuario} alGuardar={lista.recargar} />
+                    <FilaUsuario
+                      key={`${u.id_usuario}-${u.nombre}-${u.rol}-${u.estado}`}
+                      u={u}
+                      propio={u.id_usuario === sesion?.usuario.id_usuario}
+                      puedeDesactivar={puede('desactivarUsuario')}
+                      alGuardar={lista.recargar}
+                    />
                   ))}
                 </tbody>
               </table>

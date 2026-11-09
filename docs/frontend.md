@@ -37,6 +37,7 @@ Cada pantalla aparece solo si sus RF están en `requisitos_activos` y su funció
 | Bitácoras: lista y detalle con ruta en el mapa, reproducción del recorrido, incidencias y video | `/bitacoras`, `/bitacoras/:id` | RF08, RF12 | `bitacoras.ver` |
 | Alertas: historial y detalle con su ubicación | `/alertas`, `/alertas/:id` | RF11 | `alertas.ver` |
 | Usuarios: listar, crear y editar nombre y rol | `/usuarios` | RF18 | `usuarios.gestionar` |
+| Usuarios: botón **Desactivar** con confirmación (oculto hasta que el backend active RF19) | `/usuarios` | RF19 | `usuarios.gestionar` |
 | Auditoría | `/auditoria` | RNF09 | `auditoria.ver` |
 | Panel de demo | `/demo` | — | `demo.usar` |
 
