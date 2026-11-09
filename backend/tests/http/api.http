@@ -4,7 +4,6 @@
 # cada petición. Primero ejecute los dos inicios de sesión: el resto usa sus tokens.
 # Requiere la API levantada (docker compose up -d) y los datos semilla (python -m app.semilla).
 # Si cambió PUERTO_API en el .env, cambie también @base.
-# Cuando alguien implemente un RF pendiente, agregue aquí sus peticiones (docs/como-continuar.md).
 
 @base = http://localhost:8010
 @admin = {{login_admin.response.body.token}}
@@ -25,14 +24,14 @@ GET {{base}}/health
 POST {{base}}/api/auth/login
 Content-Type: application/json
 
-{ "correo": "admin@campus.edu.co", "contrasena": "Admin123*" }
+{ "correo": "emily.bonilla@campus.edu.co", "contrasena": "Admin123*" }
 
 ### Iniciar sesión como operador
 # @name login_operador
 POST {{base}}/api/auth/login
 Content-Type: application/json
 
-{ "correo": "operador1@campus.edu.co", "contrasena": "Operador123*" }
+{ "correo": "santiago.figueroa@campus.edu.co", "contrasena": "Operador123*" }
 
 ### Usuario actual, funciones y requisitos activos
 GET {{base}}/api/auth/yo
@@ -52,7 +51,7 @@ Content-Type: application/json
 { "nombre": "Laura Lozano", "correo_institucional": "laura.lozano@campus.edu.co", "contrasena": "Clave1234*", "rol": "OPERADOR" }
 
 ### Cambiar nombre o rol (RNF01)
-PATCH {{base}}/api/usuarios/5
+PATCH {{base}}/api/usuarios/3
 Authorization: Bearer {{admin}}
 Content-Type: application/json
 

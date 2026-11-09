@@ -36,7 +36,7 @@ export const api = {
     pedir<Usuario>('/api/usuarios', { metodo: 'POST', cuerpo: c }),
   editarUsuario: (id: number, c: { nombre?: string; rol?: Rol }) =>
     pedir<Usuario>(`/api/usuarios/${id}`, { metodo: 'PATCH', cuerpo: c }),
-  // RF19 (pendiente en el backend): docs/especificacion-backend.md, secciones 7.1 y 8.
+  // RF19 (fuera del alcance; el backend no tiene esta ruta): docs/especificacion-backend.md, 7.1 y 8.
   desactivarUsuario: (id: number) => pedir<Usuario>(`/api/usuarios/${id}/desactivar`, { metodo: 'POST' }),
 
   // Inventario (RF01, RF04)

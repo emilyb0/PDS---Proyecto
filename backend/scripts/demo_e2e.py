@@ -28,8 +28,8 @@ from typing import Any
 
 import httpx
 
-ADMIN = ("admin@campus.edu.co", "Admin123*")
-OPERADOR = ("operador1@campus.edu.co", "Operador123*")
+ADMIN = ("emily.bonilla@campus.edu.co", "Admin123*")
+OPERADOR = ("santiago.figueroa@campus.edu.co", "Operador123*")
 DURACION_MIN = 2  # el robot recorre todo en 2 × 0,8 = 96 s
 ROBOT_EN_FALLA = "R-004"  # la semilla le deja el LIDAR en falla (RF07)
 

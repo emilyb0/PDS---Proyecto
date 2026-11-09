@@ -25,7 +25,7 @@ export const PANTALLAS: Record<Pantalla, { rf: string[]; funcion: string }> = {
   bitacoras: { rf: ['RF08'], funcion: 'bitacoras.ver' },
   alertas: { rf: ['RF11'], funcion: 'alertas.ver' },
   usuarios: { rf: ['RF18'], funcion: 'usuarios.gestionar' },
-  // RF19 (entrega 2): el botón aparece solo cuando el backend active el módulo.
+  // RF19 (fuera del alcance): el botón solo aparecería si el backend activara RF19; hoy queda oculto.
   desactivarUsuario: { rf: ['RF18', 'RF19'], funcion: 'usuarios.gestionar' },
   // RNF09 no es un RF: depende solo de la función.
   auditoria: { rf: [], funcion: 'auditoria.ver' },

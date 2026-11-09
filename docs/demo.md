@@ -1,9 +1,9 @@
-# Guion de la demo (entrega 1)
+# Guion de la demo por la API
 
-> Paso a paso para presentar el backend de la entrega 1 (12 RF) en unos 15 minutos, sin frontend: con Swagger
+> Paso a paso para presentar el backend (12 RF) en unos 15 minutos sin el frontend: con Swagger
 > (`http://localhost:8010/docs`) o con `backend/tests/http/api.http` (REST Client de VS Code). Cada paso dice qué
 > requisito muestra y qué se espera ver. Los controles `/api/demo/...` existen solo con `MODO_DEMO=true`.
-> Cuando se implemente un RF pendiente, agregue aquí su paso.
+> Para la demo con la interfaz web, use el guion de `docs/frontend.md`.
 
 ## 0. Preparación (antes de la presentación)
 
@@ -24,7 +24,8 @@
    Invoke-RestMethod http://localhost:8010/health     # todo "ok"
    ```
 
-3. Ensayo rápido del flujo completo (≈ 2 min). Deja un servicio más en el historial:
+3. Ensayo rápido del flujo completo (≈ 2 min). Deja una reserva y su servicio de más; si quiere empezar limpio,
+   vuelva a correr el paso 2 después:
 
    ```powershell
    docker compose exec api python scripts/demo_e2e.py --url http://localhost:8000
@@ -39,13 +40,14 @@
 
 Datos útiles de la semilla: ubicaciones 1 Base de operaciones, 2 Cafetería, 3 Rectoría, 4 Biblioteca, 5 Bloque A,
 6 Bloque B, 7 Coliseo, 8 Cancha principal. Dispositivos 1–4 `R-001`…`R-004` (robots) y 5–6 `D-001`, `D-002`
-(drones). Operadores con id 2, 3 y 4.
+(drones). Usuarios: 1 Emily Bonilla (administradora) y 2 Santiago Figueroa (operador). Reservas 1 a 3
+terminadas y 4 y 5 programadas para mañana (R-001 a las 09:00 y D-002 a las 10:00). La auditoría empieza vacía.
 
 ## 1. Sesión, roles y usuarios (RF20, RF18, RNF01)
 
-- `POST /api/auth/login` con `admin@campus.edu.co` / `Admin123*` → token, `funciones` y `requisitos_activos` (los
-  12 RF de la entrega 1).
-- Lo mismo con `operador1@campus.edu.co` / `Operador123*`: recibe menos funciones.
+- `POST /api/auth/login` con `emily.bonilla@campus.edu.co` / `Admin123*` → token, `funciones` y
+  `requisitos_activos` (los 12 RF).
+- Lo mismo con `santiago.figueroa@campus.edu.co` / `Operador123*`: recibe menos funciones.
 - Con el token del operador, `POST /api/dispositivos` → **403**: solo el administrador registra dispositivos.
 - **RF18:** `POST /api/usuarios` con un operador nuevo → 201, sin la contraseña en la respuesta. Repetir el correo
   → **409 `DUPLICADO`**.
@@ -85,7 +87,8 @@ Reglas que se pueden mostrar aquí mismo:
 
 ## 5. Cierre, bitácora y video (RF08, RF12)
 
-1. El robot deja el pedido en el destino y vuelve a la base (la confirmación con código es del RF24, pendiente).
+1. El robot deja el pedido en el destino y vuelve a la base (la confirmación con código era del RF24, fuera del
+   alcance).
    Al llegar llega `servicio` **FINALIZADO**.
 2. `GET /api/bitacoras/{id}`: salida, regreso, horas de uso, incidencias (con su alerta) y el **video** guardado
    (RF12). `GET /api/bitacoras/{id}/ruta`: los puntos del recorrido con las lecturas de los sensores.
@@ -96,4 +99,4 @@ Reglas que se pueden mostrar aquí mismo:
 ## 6. Reinicio y auditoría (P1, RNF09)
 
 - Con un servicio en curso, `docker compose restart api`: al volver, el dispositivo sigue desde su último punto.
-- `GET /api/auditoria` muestra quién creó cada usuario, dispositivo y reserva.
+- `GET /api/auditoria` muestra quién creó cada usuario, dispositivo y reserva durante la demo (empieza vacía).

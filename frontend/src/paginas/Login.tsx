@@ -10,8 +10,8 @@ import { useSesion } from '../sesion/SesionContext';
 import { horaBogota } from '../utils/formato';
 
 const PRUEBA = [
-  { correo: 'admin@campus.edu.co', contrasena: 'Admin123*', rol: 'Administrador' },
-  { correo: 'operador1@campus.edu.co', contrasena: 'Operador123*', rol: 'Operador' },
+  { correo: 'emily.bonilla@campus.edu.co', contrasena: 'Admin123*', rol: 'Administradora' },
+  { correo: 'santiago.figueroa@campus.edu.co', contrasena: 'Operador123*', rol: 'Operador' },
 ];
 
 const interior = (svg: string) => svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');

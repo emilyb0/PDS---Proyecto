@@ -40,7 +40,7 @@ async def test_rf06_cruce_rechazado_mostrando_la_reserva_en_conflicto(
     assert cruzada.status_code == 409
     error = cruzada.json()["error"]
     assert error["codigo"] == "CRUCE_HORARIO"
-    assert error["mensaje"] == f"El dispositivo R-002 ya tiene la reserva #{id_primera} el 2026-11-09 de 10:00 a 10:30."
+    assert error["mensaje"] == f"El dispositivo R-002 ya tiene la reserva #{id_primera} el 09/11/2026 de 10:00 a 10:30."
     assert error["detalles"]["reserva_en_conflicto"] == {
         "id_reserva": id_primera,
         "fecha": "2026-11-09",

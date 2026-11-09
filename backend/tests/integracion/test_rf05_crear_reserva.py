@@ -118,6 +118,16 @@ async def test_rf05_origen_destino_y_operador_validos(
         )
         assert respuesta.status_code == 422, cambios
         assert respuesta.json()["error"]["detalles"]["campos"][0]["mensaje"] == mensaje
+    # Varios errores a la vez llegan juntos, cada uno con su campo.
+    varios = await cliente.post(
+        "/api/reservas",
+        json=datos_reserva(lugares, robot, operador, hora_inicio="07:00", id_destino=cafeteria, id_operador=999),
+        headers=auth(admin),
+    )
+    assert varios.status_code == 422
+    error = varios.json()["error"]
+    assert error["mensaje"] == "Hay 3 datos por corregir."
+    assert [c["campo"] for c in error["detalles"]["campos"]] == ["hora_inicio", "id_destino", "id_operador"]
     inexistente = await cliente.post(
         "/api/reservas", json=datos_reserva(lugares, robot, operador, id_dispositivo=999), headers=auth(admin)
     )

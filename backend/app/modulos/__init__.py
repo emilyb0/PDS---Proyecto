@@ -1,7 +1,7 @@
 """Módulos removibles de la entrega 2: un paquete ``rfXX_nombre`` por requisito.
 
 En esta copia (entrega 1) todavía no hay ninguno: este archivo es solo el mecanismo que los descubre. Para
-implementar un RF pendiente como módulo, vea ``docs/como-continuar.md`` y ``docs/arquitectura.md``.
+implementar un RF pendiente como módulo, vea ``docs/arquitectura.md``.
 
 Se descubren solos: para quitar un módulo basta con borrar su carpeta (y la de sus pruebas). Para apagarlo sin
 borrar código, use ``MODULOS_ACTIVOS`` en el ``.env``: ``todos`` (por defecto), ``ninguno`` (solo la entrega 1) o

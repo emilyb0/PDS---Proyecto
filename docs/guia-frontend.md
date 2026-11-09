@@ -5,7 +5,8 @@
 > La documentación interactiva siempre actualizada está en **`http://localhost:8010/docs`** (OpenAPI).
 > Si esta guía y `/docs` no coinciden, avísale al equipo de backend: hay que corregir uno de los dos.
 >
-> **Esta guía describe la entrega 1 (12 RF).** Lo que agregarán los RF pendientes está en la sección 11.
+> **Esta guía describe la entrega 1 (12 RF), que es el alcance final del proyecto.** Los otros 15 RF quedaron
+> fuera del alcance; donde la guía dice "pendiente", léase así. La sección 11 los lista solo como referencia.
 > Para probar sin frontend: `backend/tests/http/api.http` (REST Client de VS Code) y el guion `docs/demo.md`.
 
 ## 0. Entregas: qué existe
@@ -85,7 +86,7 @@ Todos los errores, incluidos los de validación, tienen esta forma:
 | 401 | `NO_AUTENTICADO` | Token ausente, inválido o vencido, o usuario desactivado. Borrar el token e ir al login |
 | 403 | `SIN_PERMISO` | El rol no puede hacer esto. No debería pasar si se respeta `funciones` (sección 3) |
 | 404 | `NO_ENCONTRADO` | El recurso no existe, o se envió un id que no existe (también una ruta de un RF pendiente) |
-| 422 | `VALIDACION` | Campos inválidos. `detalles.campos` = `[{ "campo": "duracion_estimada_min", "mensaje": "…" }]`; mostrar cada mensaje junto a su campo |
+| 422 | `VALIDACION` | Campos inválidos. `detalles.campos` = `[{ "campo": "duracion_estimada_min", "mensaje": "…" }]`, con **todos** los campos con error a la vez; mostrar cada mensaje junto a su campo. Con un solo campo, `mensaje` es el de ese campo; con varios, "Hay N datos por corregir." |
 | 409 | `DUPLICADO` | Correo o número de serie ya registrado |
 | 409 | `CRUCE_HORARIO` | `detalles.reserva_en_conflicto` = `{ id_reserva, fecha, hora_inicio, hora_fin, tipo_servicio, estado, operador: { id_usuario, nombre } }` (RF06) |
 | 409 | `DISPOSITIVO_NO_APTO` | `detalles.motivos` = `["Batería 25 % (mínimo 30 %)", "Sensor LIDAR en falla"]` (RF07) |
@@ -110,7 +111,7 @@ Los RF pendientes agregarán `CLIMA_NO_APTO` (RF23) y `RESERVAS_PENDIENTES` (RF0
 
 ```http
 POST /api/auth/login
-{ "correo": "admin@campus.edu.co", "contrasena": "Admin123*" }
+{ "correo": "emily.bonilla@campus.edu.co", "contrasena": "Admin123*" }
 ```
 
 ```json
@@ -119,7 +120,7 @@ POST /api/auth/login
   "token": "eyJhbGciOi…",
   "tipo": "bearer",
   "expira": "2026-11-09T18:30:00-05:00",
-  "usuario": { "id_usuario": 1, "nombre": "Ana Admin", "correo_institucional": "admin@campus.edu.co",
+  "usuario": { "id_usuario": 1, "nombre": "Emily Bonilla", "correo_institucional": "emily.bonilla@campus.edu.co",
                "rol": "ADMINISTRADOR", "estado": "ACTIVO", "fecha_creacion": "2026-11-01T08:00:00-05:00" },
   "funciones": ["inventario.ver", "reservas.ver", "…", "demo.usar"],
   "requisitos_activos": ["RF01", "RF04", "RF05", "RF06", "RF07", "RF08", "RF09", "RF10", "RF11", "RF12", "RF18", "RF20"]
@@ -191,7 +192,7 @@ Tipo de dispositivo según el servicio: las entregas (documentos o cafetería) s
 **Usuario**
 
 ```json
-{ "id_usuario": 2, "nombre": "Óscar Operador", "correo_institucional": "operador1@campus.edu.co",
+{ "id_usuario": 2, "nombre": "Santiago Figueroa", "correo_institucional": "santiago.figueroa@campus.edu.co",
   "rol": "OPERADOR", "estado": "ACTIVO", "fecha_creacion": "2026-11-01T08:00:00-05:00" }
 ```
 
@@ -256,9 +257,11 @@ POST /api/reservas
   exige); lo usará el RF24 (pendiente) para confirmar la entrega.
 - Errores posibles, en este orden: `TIPO_DISPOSITIVO_INCORRECTO`, `DISPOSITIVO_NO_APTO` (estado),
   `CRUCE_HORARIO`, `DISPOSITIVO_NO_APTO` (batería o sensores).
-- Validaciones (422, con el campo en `detalles.campos`): la fecha y hora no pueden estar en el pasado (se acepta
+- Validaciones (422, todas juntas en `detalles.campos`): la fecha y hora no pueden estar en el pasado (se acepta
   el minuto en curso); la duración va de 1 a 480 min; el origen y el destino existen y son distintos; el
   responsable es un operador activo. Un dispositivo inexistente responde 404.
+- El `mensaje` de `CRUCE_HORARIO` trae la fecha como DD/MM/AAAA ("… la reserva #4 el 10/11/2026 de 09:00 a
+  09:30"); `detalles.reserva_en_conflicto.fecha` sigue en ISO (`2026-11-10`).
 - La batería y los sensores se consultan al dispositivo en ese momento; si no responde, 503.
 
 **Reserva**
@@ -327,7 +330,7 @@ POST /api/reservas
   "intervalo_seg": 5,
   "dispositivos": [
     { "id_dispositivo": 2, "numero_serie": "R-002", "tipo": "ROBOT", "modelo": "Rover Mk2", "estado": "EN_SERVICIO",
-      "telemetria": { "…": "igual que el evento telemetria" },
+      "telemetria": { "…": "igual que el evento telemetria, con fecha_hora en -05:00" },
       "servicio": { "id_bitacora": 40, "id_reserva": 55, "tipo_servicio": "PEDIDO_CAFETERIA", "estado": "EN_CURSO",
                     "hora_salida": "…", "fin_estimado": "2026-11-09T10:30:00-05:00",
                     "destino": { "id_ubicacion": 3, "nombre": "Rectoría" }, "operador": { "id_usuario": 2, "nombre": "…" } } }
@@ -450,8 +453,8 @@ Se cargan con `docker compose exec api python -m app.semilla` (ver el README).
 
 | Correo | Contraseña | Rol |
 |---|---|---|
-| `admin@campus.edu.co` | `Admin123*` | Administrador |
-| `operador1@campus.edu.co` … `operador3@campus.edu.co` | `Operador123*` | Operador |
+| `emily.bonilla@campus.edu.co` (Emily Bonilla) | `Admin123*` | Administradora |
+| `santiago.figueroa@campus.edu.co` (Santiago Figueroa) | `Operador123*` | Operador |
 
 Son contraseñas solo para desarrollo. El dominio `campus.edu.co` es de ejemplo.
 
@@ -459,12 +462,12 @@ Son contraseñas solo para desarrollo. El dominio `campus.edu.co` es de ejemplo.
 |---|---|
 | Dispositivos | 1–4: robots `R-001`…`R-004` (`R-003` con batería baja, `R-004` con el LIDAR en falla); 5–6: drones `D-001`, `D-002` |
 | Ubicaciones | 1 Base de operaciones, 2 Cafetería, 3 Rectoría, 4 Biblioteca, 5 Bloque A, 6 Bloque B, 7 Coliseo, 8 Cancha principal (coordenadas de ejemplo) |
-| Historial | 25 servicios terminados en los últimos 4 meses, con ruta, incidencias, 3 alertas de servicio y videos |
-| Reservas | Programadas para hoy (desde las 17:00) y mañana |
+| Reservas | 5: tres servicios terminados (R-001, D-001 y R-002, con ruta, video y 2 alertas: sensor y batería) y dos programadas para mañana (R-001 a las 09:00, D-002 a las 10:00) |
+| Auditoría | Vacía: se llena con lo que se haga en la demo |
 
-## 11. Lo que agregarán los RF pendientes
+## 11. RF fuera del alcance (solo referencia)
 
-**Todavía no existen**: responden 404, salvo `PATCH /api/dispositivos/{id}`, que responde 405 porque esa
+**No se implementaron**: responden 404, salvo `PATCH /api/dispositivos/{id}`, que responde 405 porque esa
 dirección ya existe para `GET`. Se listan para que el frontend pueda planear sus pantallas. El contrato
 previsto está en `docs/especificacion-backend.md` (secciones 9 y 10); cuando cada módulo se implemente, esta guía
 se actualiza con el detalle.

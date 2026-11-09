@@ -3,7 +3,7 @@ name = "robots-drones-backend"
 version = "0.1.0"
 description = "Backend del sistema centralizado de robots y drones (prototipo de Procesos y Diseño de Software)"
 requires-python = ">=3.12,<3.13"
-# Versiones fijadas y verificadas en Python 3.12.14 (docs/plan.md, sección 4).
+# Versiones fijadas y verificadas en Python 3.12.14 (decisiones de la Fase 0, docs/decisiones.md).
 dependencies = [
     "fastapi==0.162.2",
     "uvicorn[standard]==0.54.0",

@@ -33,7 +33,7 @@ class OperadorOpcion(Esquema):
 
 
 class LoginEntrada(EsquemaEntrada):
-    correo: str = Field(min_length=1, max_length=120, examples=["admin@campus.edu.co"])
+    correo: str = Field(min_length=1, max_length=120, examples=["emily.bonilla@campus.edu.co"])
     contrasena: str = Field(min_length=1, max_length=128, examples=["Admin123*"])
 
 

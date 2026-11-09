@@ -1,8 +1,8 @@
-# Sistema centralizado de robots y drones — prototipo (entrega 1)
+# Sistema centralizado de robots y drones — prototipo (versión final)
 
 Proyecto final de *Procesos y Diseño de Software*. Una universidad tiene 6 dispositivos (robots que transportan documentos y pedidos de cafetería; drones que graban eventos) y necesita un sistema web que los reserve, los monitoree en tiempo real, registre la bitácora de cada servicio y guarde los videos en la nube. El demo es solo software: los dispositivos se simulan (RESTR01).
 
-**Este repositorio es la entrega 1:** el núcleo del backend con 12 de los 27 RF. Los otros 15 están pendientes y se agregan como módulos. Qué está hecho, qué falta y cómo seguir: `docs/como-continuar.md`.
+**Versión final del proyecto:** backend con 12 de los 27 RF (los que pidió el profesor) y el frontend web en `frontend/`. Los otros 15 RF quedaron **fuera del alcance**. Resumen general, despliegue y usuarios: `README.md`.
 
 ## Documentos (leer antes de cambiar algo)
 
@@ -14,10 +14,9 @@ Proyecto final de *Procesos y Diseño de Software*. Una universidad tiene 6 disp
 | `docs/modelo/diagrama_clases.puml` | Diagrama de clases (PlantUML). Nombres de clases e interfaces a respetar |
 | `docs/modelo/diagrama_secuencia.mmd` | Flujo de reserva y servicio, 69 pasos (Mermaid) |
 | `docs/modelo/diagrama_bd.mmd` | Vista ER derivada del SQL (solo referencia) |
-| `docs/como-continuar.md` | Para el equipo: qué está hecho, qué falta (con la sección de la especificación de cada RF), cómo levantar el proyecto y cómo implementar un RF pendiente, con un prompt de ejemplo |
 | `docs/decisiones.md` | Decisiones tomadas durante la construcción, con el porqué (mantenerlo) |
-| `docs/trazabilidad.md` | RF → endpoints → clases → pruebas; los pendientes con su sección de la especificación (mantenerlo) |
-| `docs/plan.md` | Plan aprobado en la Fase 0 del proyecto completo (estructura, simulador, monitor, tareas, librerías) |
+| `docs/trazabilidad.md` | RF → endpoints → clases → pruebas; los 15 fuera del alcance, como referencia |
+| `docs/frontend.md` | Frontend: cómo correrlo, diseño, pantallas con su RF y guion de la demo |
 | `docs/guia-frontend.md` | Contrato de la API para el frontend: formatos, errores, roles, endpoints, SSE. **Mantenerlo igual al código** |
 | `docs/arquitectura.md` | Núcleo y módulos, puntos de extensión, `MODULOS_ACTIVOS`, cómo agregar o quitar un módulo. **Mantenerla al día** |
 | `docs/demo.md` | Guion de la demo paso a paso (con `README.md`, `backend/tests/http/api.http` y `backend/scripts/demo_e2e.py`) |
@@ -26,7 +25,7 @@ Si dos documentos se contradicen, manda el que está más arriba en la tabla. Si
 
 ## Stack
 
-Python 3.12 · FastAPI · SQLAlchemy 2 async + psycopg 3 · Alembic · PostgreSQL 16 · Pydantic v2 · JWT · SSE · pytest · ruff · Docker Compose. El equipo trabaja en **Windows con PowerShell y Docker Desktop**.
+Backend: Python 3.12 · FastAPI · SQLAlchemy 2 async + psycopg 3 · Alembic · PostgreSQL 16 · Pydantic v2 · JWT · SSE · pytest · ruff · Docker Compose. El equipo trabaja en **Windows con PowerShell y Docker Desktop**.
 
 ## Reglas de oro
 
@@ -47,9 +46,9 @@ El sistema tiene 27 RF y se entrega en dos partes:
 
 - **Entrega 1, el núcleo (12 RF, hecha):** RF01, RF04, RF05, RF06, RF07, RF08, RF09, RF10, RF11, RF12, RF18 y RF20,
   más la infraestructura, los RNF y las restricciones.
-- **Entrega 2, los módulos (15 RF, pendientes):** RF02, RF03, RF13, RF14, RF15, RF16, RF17, RF19, RF21, RF22,
-  RF23, RF24, RF25, RF26 y RF27. La tabla de `docs/como-continuar.md` dice, para cada uno, dónde empieza en la
-  especificación, en qué carpeta va, en qué puntos de extensión se engancha y qué decisiones ya lo afectan.
+- **Fuera del alcance (15 RF):** RF02, RF03, RF13, RF14, RF15, RF16, RF17, RF19, RF21, RF22, RF23, RF24, RF25,
+  RF26 y RF27. No se implementan (decisión C-1). La arquitectura de módulos sigue en el código por si se
+  retomaran; `docs/trazabilidad.md` dice qué quedó listo en el núcleo para cada uno.
 
 Reglas:
 
@@ -152,7 +151,11 @@ docker compose down -v     # borra la base y los videos
     `tests/http/api.http` y `docs/demo.md`.
   - 187 pruebas en verde con `--lentas` en el contenedor (más 1 omitida: la guarda de `.env.example`, que no se
     monta); ruff limpio. `--solo-entrega-1` da lo mismo porque aún no hay módulos.
-- **Pendiente:** los 15 RF de la entrega 2 (tabla en `docs/como-continuar.md` y `docs/trazabilidad.md`).
+- **Cierre (2026-11-09):** frontend completo (`docs/frontend.md`); corregidos la fecha de la telemetría en
+  `GET /api/monitoreo`, las validaciones de la reserva (todos los campos a la vez) y el formato de fecha del
+  mensaje de `CRUCE_HORARIO`; semilla mínima para la demo (Emily Bonilla, Santiago Figueroa, 6 dispositivos y 5
+  reservas, sin auditoría). 187 pruebas en verde con `--lentas`. Decisiones C-1 a C-5.
+- **Fuera del alcance:** los otros 15 RF (`docs/trazabilidad.md`).
 - **Para validar con el cliente o el equipo:** RESTR04 con un bucket real de AWS (hoy los videos van a disco
   local por defecto), HTTPS en local (RNF05, hoy solo documentado), `MODO_DEMO=false` en producción y las
   coordenadas reales del campus (`backend/app/semilla.py`). Ver `docs/decisiones.md`, "Entrega 1".

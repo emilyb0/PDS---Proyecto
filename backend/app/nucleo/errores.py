@@ -53,6 +53,16 @@ class ErrorValidacion(ErrorAplicacion):
     def de_campo(cls, campo: str, mensaje: str) -> ErrorValidacion:
         return cls(mensaje, {"campos": [{"campo": campo, "mensaje": mensaje}]})
 
+    @classmethod
+    def de_campos(cls, campos: list[tuple[str, str]]) -> ErrorValidacion:
+        """Varios campos con error en una sola respuesta. Con uno solo, equivale a ``de_campo``."""
+        if len(campos) == 1:
+            return cls.de_campo(*campos[0])
+        return cls(
+            f"Hay {len(campos)} datos por corregir.",
+            {"campos": [{"campo": campo, "mensaje": mensaje} for campo, mensaje in campos]},
+        )
+
 
 class ErrorNoAutenticado(ErrorAplicacion):
     estado_http = 401

@@ -1,4 +1,4 @@
-"""RESTR01 — Datos semilla de la demo (solo de la entrega 1), y RNF03 — con esos datos, los listados responden en
+"""RESTR01 — Datos semilla mínimos de la demo, y RNF03 — con esos datos, los listados responden en
 menos de 3 s."""
 
 from __future__ import annotations
@@ -10,10 +10,11 @@ from sqlalchemy import func, select, text
 
 from app.contenedor import Contenedor
 from app.dispositivos.modelos import Dispositivo
-from app.nucleo.enums import EstadoReserva, EstadoSensor, EstadoServicio, TipoDispositivo
+from app.nucleo.enums import EstadoReserva, EstadoServicio, RolUsuario, TipoDispositivo
 from app.reservas.modelos import Reserva
-from app.semilla import CONTRASENA_ADMIN, CORREO_ADMIN, sembrar
+from app.semilla import CONTRASENA_ADMIN, CONTRASENA_OPERADOR, CORREO_ADMIN, CORREO_OPERADOR, sembrar
 from app.servicios.modelos import BitacoraServicio, RegistroTelemetria
+from app.usuarios.modelos import Usuario
 from app.videos.modelos import Video
 
 
@@ -23,30 +24,33 @@ async def test_restr01_la_semilla_carga_la_demo_y_es_idempotente(
     resumen = await sembrar(contenedor)
     assert resumen.sembrada
     conteos = resumen.conteos
-    assert (conteos["usuario"], conteos["dispositivo"], conteos["ubicacion"]) == (4, 6, 8)
-    assert conteos["bitacora_servicio"] == 25 and conteos["video"] == 25
-    assert conteos["reserva"] == 25 + 6  # el historial y 6 programadas (a las 08:00 aún caben las de hoy)
-    assert conteos["registro_telemetria"] > 25 * 20
-    assert conteos["alerta"] == 3 and conteos["incidencia"] == 3  # batería, sensor y retraso (RF11)
+    assert (conteos["usuario"], conteos["dispositivo"], conteos["ubicacion"]) == (2, 6, 8)
+    assert conteos["reserva"] == 5  # 3 terminadas y 2 programadas para mañana
+    assert conteos["bitacora_servicio"] == 3 and conteos["video"] == 3
+    assert conteos["registro_telemetria"] > 3 * 20
+    assert conteos["alerta"] == 2 and conteos["incidencia"] == 2  # sensor y batería (RF11)
 
     async with contenedor.sesiones() as sesion:
+        usuarios = {u.nombre: u for u in (await sesion.scalars(select(Usuario))).all()}
+        assert set(usuarios) == {"Emily Bonilla", "Santiago Figueroa"}
+        assert usuarios["Emily Bonilla"].rol == RolUsuario.ADMINISTRADOR
+        assert usuarios["Santiago Figueroa"].rol == RolUsuario.OPERADOR
+        assert await sesion.scalar(text("SELECT count(*) FROM registro_auditoria")) == 0  # la auditoría empieza vacía
         dispositivos = {d.numero_serie: d for d in (await sesion.scalars(select(Dispositivo))).all()}
         assert sum(d.tipo == TipoDispositivo.ROBOT for d in dispositivos.values()) == 4
         assert dispositivos["R-004"].sensores_en_falla() == ["LIDAR"]  # RF07
         assert dispositivos["R-003"].nivel_bateria < 30  # RF07
-        # Solo datos de la entrega 1: nada de las tablas que usan los RF pendientes.
-        for tabla in ("zona_operacion", "mantenimiento", "atencion_alerta", "alerta_mantenimiento"):
-            assert await sesion.scalar(text(f"SELECT count(*) FROM {tabla}")) == 0, tabla
-        assert (
-            await sesion.scalar(select(func.count()).select_from(Video).where(Video.fecha_eliminacion.is_not(None)))
-            == 0
-        )
+        # El historial no usa a R-004: con el LIDAR en falla, RF07 no lo deja reservar.
         assert (
             await sesion.scalar(
-                select(func.count()).select_from(BitacoraServicio).where(BitacoraServicio.hora_entrega.is_not(None))
+                select(func.count())
+                .select_from(Reserva)
+                .where(Reserva.id_dispositivo == dispositivos["R-004"].id_dispositivo)
             )
             == 0
-        )  # sin RF24 nadie confirma la entrega
+        )
+        for tabla in ("zona_operacion", "mantenimiento", "atencion_alerta", "alerta_mantenimiento"):
+            assert await sesion.scalar(text(f"SELECT count(*) FROM {tabla}")) == 0, tabla
         assert (
             await sesion.scalar(
                 select(func.count())
@@ -56,7 +60,7 @@ async def test_restr01_la_semilla_carga_la_demo_y_es_idempotente(
             == 0
         )
         programadas = (await sesion.scalars(select(Reserva).where(Reserva.estado == EstadoReserva.PROGRAMADA))).all()
-        assert {r.fecha.isoformat() for r in programadas} == {"2026-11-09", "2026-11-10"}
+        assert len(programadas) == 2 and {r.fecha.isoformat() for r in programadas} == {"2026-11-10"}
         vigente = await sesion.scalar(select(Video).limit(1))
         assert vigente is not None
         assert (await contenedor.almacenamiento.obtener(vigente.url))[4:8] == b"ftyp"
@@ -64,11 +68,14 @@ async def test_restr01_la_semilla_carga_la_demo_y_es_idempotente(
             select(func.count()).select_from(RegistroTelemetria).where(RegistroTelemetria.nivel_bateria < 0)
         )
         assert fallas == 0
-        assert EstadoSensor.FALLA in {s.estado for s in dispositivos["R-004"].sensores}
 
     # El usuario semilla puede entrar.
     login = await cliente.post("/api/auth/login", json={"correo": CORREO_ADMIN, "contrasena": CONTRASENA_ADMIN})
     assert login.status_code == 200
+    operador = await cliente.post(
+        "/api/auth/login", json={"correo": CORREO_OPERADOR, "contrasena": CONTRASENA_OPERADOR}
+    )
+    assert operador.status_code == 200
 
     # Idempotente: una segunda corrida no cambia nada; con --reiniciar vuelve a quedar igual.
     assert (await sembrar(contenedor)).sembrada is False

@@ -18,6 +18,7 @@ from app.mantenimiento.modelos import Mantenimiento
 from app.nucleo.enums import EstadoServicio, TipoAlerta
 from app.nucleo.errores import ErrorNoEncontrado, ErrorValidacion
 from app.nucleo.esquemas import Pagina, ParametrosPaginacion
+from app.nucleo.eventos import a_json
 from app.nucleo.paginacion import paginar
 from app.reservas.esquemas import ReservaSalida, UbicacionResumen
 from app.reservas.gestor_reservas import opciones_reserva
@@ -260,7 +261,8 @@ async def foto_monitoreo(sesion: AsyncSession, contenedor: Contenedor) -> Monito
                 tipo=d.tipo,
                 modelo=d.modelo,
                 estado=d.estado,
-                telemetria=contenedor.monitor.ultima_telemetria(d.id_dispositivo),
+                # Igual que el evento SSE: fechas con -05:00 (decisión T7).
+                telemetria=a_json(contenedor.monitor.ultima_telemetria(d.id_dispositivo)),
                 servicio=servicios.get(d.id_dispositivo),
             )
             for d in dispositivos

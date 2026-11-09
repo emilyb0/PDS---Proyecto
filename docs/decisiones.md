@@ -1,5 +1,8 @@
 # Decisiones del backend
 
+> **Alcance final del proyecto: los 12 RF de la entrega 1.** Donde este documento dice "pendiente" o "entrega 2",
+> léase **fuera del alcance**: el profesor pidió 12 requisitos y los otros 15 no se implementaron.
+
 > Decisiones tomadas durante la construcción, con el porqué. Completan la especificación donde quedó
 > abierta; no la contradicen. Si una decisión cambia, se marca como reemplazada y se agrega la nueva.
 > Orden de prioridad de los documentos: `requisitos.md` > `esquema_bd.sql` > `especificacion-backend.md`
@@ -7,8 +10,18 @@
 >
 > **Este repositorio es la entrega 1.** El backend se construyó completo (fases 0 a 5) y después se separó el núcleo.
 > Las decisiones sobre los RF de la entrega 2 se tomaron al construirlos; su código no está aquí, pero siguen
-> valiendo como guía para implementarlos. La tabla de `docs/como-continuar.md` dice cuáles afectan a cada RF
+> valiendo como guía para implementarlos. La tabla de `docs/trazabilidad.md` lista cada RF
 > pendiente.
+
+## Cierre del proyecto (2026-11-09)
+
+| ID | Decisión | Por qué |
+|---|---|---|
+| C-1 | El alcance final son los 12 RF de la entrega 1. Los otros 15 no se implementan y se marcan "fuera del alcance" en `docs/trazabilidad.md`. Se borran `docs/como-continuar.md`, `docs/plan.md` y `docs/pendientes-backend.md`. | El profesor pidió 12 requisitos y el proyecto no tendrá más desarrollo. |
+| C-2 | **Ajusta E1-3.** La semilla es mínima: 2 usuarios (la administradora Emily Bonilla y el operador Santiago Figueroa), los 6 dispositivos, el campus de ejemplo y 5 reservas (3 terminadas con ruta, video y 2 alertas; 2 programadas para mañana). No crea registros de auditoría y ya no usa `R-004` en el historial. | Que en la demostración el equipo cree en vivo los usuarios, dispositivos y reservas. El operador es obligatorio: `fn_validar_reserva` exige un operador activo en cada reserva. `R-004` tiene el LIDAR en falla y RF07 no deja reservarlo, así que un servicio suyo en el historial era inconsistente. |
+| C-3 | `GET /api/monitoreo` serializa la `telemetria` con `a_json`, igual que el evento SSE: `fecha_hora` llega con `-05:00`. | Antes llegaba sin desfase, contra la decisión T7 y la guía. |
+| C-4 | `POST /api/reservas` revisa la fecha, el origen, el destino y el operador juntos y responde todos los campos con error en una sola respuesta (`ErrorValidacion.de_campos`). Con uno solo, el mensaje es el de ese campo; con varios, "Hay N datos por corregir.". | Que el usuario corrija todo de una vez y no un error por envío. |
+| C-5 | El `mensaje` de `CRUCE_HORARIO` muestra la fecha como DD/MM/AAAA. `detalles.reserva_en_conflicto.fecha` sigue en ISO. | El mensaje es para personas; el detalle, para el programa. |
 
 ## Entrega 1 — este repositorio (2026-11-08)
 

@@ -98,27 +98,29 @@ class GestorReservas:
 
     # ================================================================== validaciones de entrada (422)
 
-    def validar_no_pasado(self, inicio: datetime) -> None:
-        """Se acepta el minuto en curso (decisión D12)."""
+    async def validar_entrada(self, datos: ReservaCrear, inicio: datetime) -> tuple[Ubicacion, Ubicacion, Usuario]:
+        """Revisa la fecha, el origen, el destino y el operador, y responde **todos** los campos con error juntos.
+
+        Se acepta el minuto en curso (decisión D12).
+        """
+        campos: list[tuple[str, str]] = []
         if inicio < self.c.reloj.ahora().replace(second=0, microsecond=0):
-            raise ErrorValidacion.de_campo("hora_inicio", "La fecha y hora de inicio no pueden estar en el pasado.")
-
-    async def obtener_ubicaciones(self, id_origen: int, id_destino: int) -> tuple[Ubicacion, Ubicacion]:
-        if id_origen == id_destino:
-            raise ErrorValidacion.de_campo("id_destino", "El origen y el destino deben ser distintos.")
-        origen = await self.sesion.get(Ubicacion, id_origen)
+            campos.append(("hora_inicio", "La fecha y hora de inicio no pueden estar en el pasado."))
+        origen = await self.sesion.get(Ubicacion, datos.id_origen)
         if origen is None:
-            raise ErrorValidacion.de_campo("id_origen", "La ubicación de origen no existe.")
-        destino = await self.sesion.get(Ubicacion, id_destino)
+            campos.append(("id_origen", "La ubicación de origen no existe."))
+        destino = await self.sesion.get(Ubicacion, datos.id_destino)
         if destino is None:
-            raise ErrorValidacion.de_campo("id_destino", "La ubicación de destino no existe.")
-        return origen, destino
-
-    async def obtener_operador(self, id_operador: int) -> Usuario:
-        operador = await self.sesion.get(Usuario, id_operador)
+            campos.append(("id_destino", "La ubicación de destino no existe."))
+        elif datos.id_origen == datos.id_destino:
+            campos.append(("id_destino", "El origen y el destino deben ser distintos."))
+        operador = await self.sesion.get(Usuario, datos.id_operador)
         if operador is None or operador.rol != RolUsuario.OPERADOR or not operador.esta_activo():
-            raise ErrorValidacion.de_campo("id_operador", "El responsable debe ser un operador activo.")
-        return operador
+            campos.append(("id_operador", "El responsable debe ser un operador activo."))
+        if campos:
+            raise ErrorValidacion.de_campos(campos)
+        assert origen is not None and destino is not None and operador is not None
+        return origen, destino, operador
 
     # ================================================================== pasos 1 a 5
 
@@ -164,7 +166,7 @@ class GestorReservas:
     def error_cruce(conflicto: Reserva) -> ErrorCruceHorario:
         return ErrorCruceHorario(
             f"El dispositivo {conflicto.dispositivo.numero_serie} ya tiene la reserva #{conflicto.id_reserva} "
-            f"el {conflicto.fecha.isoformat()} de {_hhmm(conflicto.inicio)} a {_hhmm(conflicto.fin)}.",
+            f"el {conflicto.fecha:%d/%m/%Y} de {_hhmm(conflicto.inicio)} a {_hhmm(conflicto.fin)}.",
             {
                 "reserva_en_conflicto": {
                     "id_reserva": conflicto.id_reserva,
@@ -249,9 +251,7 @@ class GestorReservas:
     async def crear_reserva(self, datos: ReservaCrear, administrador: Usuario) -> tuple[Reserva, list[Advertencia]]:
         inicio = datetime.combine(datos.fecha, datos.hora_inicio)
         fin = inicio + timedelta(minutes=datos.duracion_estimada_min)
-        self.validar_no_pasado(inicio)
-        origen, destino = await self.obtener_ubicaciones(datos.id_origen, datos.id_destino)
-        operador = await self.obtener_operador(datos.id_operador)
+        origen, destino, operador = await self.validar_entrada(datos, inicio)
         dispositivo = await obtener_dispositivo(self.sesion, datos.id_dispositivo)
 
         self.validar_tipo(dispositivo, datos.tipo_servicio)

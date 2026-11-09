@@ -1,8 +1,11 @@
 # Arquitectura del backend: núcleo y módulos
 
+> **Alcance final del proyecto: los 12 RF de la entrega 1.** Donde este documento dice "pendiente" o "entrega 2",
+> léase **fuera del alcance**: el profesor pidió 12 requisitos y los otros 15 no se implementaron.
+
 > Guía corta para el equipo. Explica cómo está organizado el código para entregar el sistema en dos partes y cómo
 > agregar los RF que faltan. Se actualiza con cada módulo. Detalle técnico: `docs/decisiones.md` (M-1 a M-12) y la
-> sección "Entregas" de `CLAUDE.md`. Paso a paso para el equipo: `docs/como-continuar.md`.
+> sección "Entregas" de `CLAUDE.md`.
 
 ## 1. La idea
 
@@ -38,7 +41,7 @@ núcleo nunca los llama por su nombre.
 | `backend/tests/` (salvo `modulos/`) | Pruebas del núcleo |
 | `backend/tests/modulos/` | Hoy solo tiene `conftest.py`, que enciende los módulos en sus pruebas. Cada RF pendiente agrega aquí su carpeta `rfXX_nombre/` |
 
-Nombres de carpeta sugeridos para los 15 pendientes (tabla completa en `docs/como-continuar.md`):
+Nombres de carpeta sugeridos para los 15 pendientes (tabla completa en `docs/trazabilidad.md`):
 `rf02_editar_dispositivo`, `rf03_dar_de_baja`, `rf13_consultar_videos`, `rf14_ordenar_retorno`,
 `rf15_mantenimiento`, `rf16_mantenimiento_preventivo`, `rf17_reportes`, `rf19_desactivar_usuario`,
 `rf21_cancelar_reprogramar`, `rf22_sugerir_dispositivo`, `rf23_validar_clima`, `rf24_entrega_con_codigo`,

@@ -61,6 +61,7 @@ async def test_rf09_monitoreo_refleja_la_ultima_telemetria_de_cada_dispositivo(
     assert telemetria["id_bitacora"] == id_bitacora and telemetria["estado_servicio"] == "EN_RUTA"
     assert telemetria["nivel_bateria"] == 99 and telemetria["estado_dispositivo"] == "EN_SERVICIO"
     assert {s["nombre"] for s in telemetria["sensores"]} == {"GPS", "Cámara", "LIDAR", "Ultrasonido"}
+    assert telemetria["fecha_hora"].endswith("-05:00")  # igual que el evento SSE
     en_base = por_serie[drone.numero_serie]
     assert en_base["servicio"] is None
     assert en_base["telemetria"]["estado_servicio"] == "EN_BASE" and en_base["telemetria"]["id_bitacora"] is None

@@ -1,5 +1,8 @@
 # Especificación del backend — prototipo
 
+> **Alcance final del proyecto: los 12 RF de la entrega 1.** Donde este documento dice "pendiente" o "entrega 2",
+> léase **fuera del alcance**: el profesor pidió 12 requisitos y los otros 15 no se implementaron.
+
 > Este documento dice **cómo** construir el backend: reglas exactas, estados, API, simulador y pruebas.
 > `requisitos.md` dice **qué** debe hacer el sistema.
 >

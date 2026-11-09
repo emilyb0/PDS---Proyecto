@@ -37,7 +37,7 @@ Cada pantalla aparece solo si sus RF están en `requisitos_activos` y su funció
 | Bitácoras: lista y detalle con ruta en el mapa, reproducción del recorrido, incidencias y video | `/bitacoras`, `/bitacoras/:id` | RF08, RF12 | `bitacoras.ver` |
 | Alertas: historial y detalle con su ubicación | `/alertas`, `/alertas/:id` | RF11 | `alertas.ver` |
 | Usuarios: listar, crear y editar nombre y rol | `/usuarios` | RF18 | `usuarios.gestionar` |
-| Usuarios: botón **Desactivar** con confirmación (oculto hasta que el backend active RF19) | `/usuarios` | RF19 | `usuarios.gestionar` |
+| Usuarios: botón **Desactivar** con confirmación. Queda oculto: RF19 está fuera del alcance y el backend no lo tiene | `/usuarios` | RF19 | `usuarios.gestionar` |
 | Auditoría | `/auditoria` | RNF09 | `auditoria.ver` |
 | Panel de demo | `/demo` | — | `demo.usar` |
 
@@ -45,17 +45,17 @@ Las alertas que llegan por SSE se muestran como aviso en **cualquier pantalla**,
 
 ## Guion de la demo (≈ 10 min)
 
-Antes: en el `.env`, `MODO_DEMO=true` y `RETRASO_ALERTA_MIN=1`. Luego cargue la semilla limpia (`--reiniciar` y después `docker compose restart api`) y abra `npm run dev`.
+Antes: en el `.env`, `MODO_DEMO=true` y `RETRASO_ALERTA_MIN=1`. Luego cargue la semilla limpia (`--reiniciar` y después `docker compose restart api`) y abra `npm run dev`. La semilla trae solo a Emily Bonilla (administradora), a Santiago Figueroa (operador), los 6 dispositivos y 5 reservas de ejemplo (3 terminadas con bitácora y video, 2 para mañana); el resto se crea en vivo.
 
-1. **Login (RF20).** Entre como `operador1@campus.edu.co`: el menú tiene 5 opciones y no puede crear reservas. Salga y entre como `admin@campus.edu.co` / `Admin123*`: aparecen Usuarios, Auditoría y Panel de demo.
+1. **Login (RF20, RF18).** Entre como `santiago.figueroa@campus.edu.co` / `Operador123*`: el menú tiene 5 opciones y no puede crear reservas. Salga y entre como `emily.bonilla@campus.edu.co` / `Admin123*`: aparecen Usuarios, Auditoría y Panel de demo. En Usuarios, registre un operador nuevo en vivo.
 2. **Inventario (RF04, RF01).** Use los filtros por tipo y estado. R-003 tiene la batería al 28 % y R-004 el LIDAR en falla. Registre `R-010`; repetirlo da `DUPLICADO`.
-3. **Reserva (RF05–RF07).** En Reservas → Nueva reserva, elija Pedido de cafetería, pulse **Ahora**, 3 min, un operador, Cafetería → Rectoría y R-001. Confirme y aparece el **código de 4 dígitos**. Luego:
+3. **Reserva (RF05–RF07).** En Reservas → Nueva reserva, elija Pedido de cafetería, pulse **Ahora**, 3 min, un operador, Cafetería → Rectoría y R-001. Confirme y aparece el **código de 4 dígitos**. Si se envía con errores (por ejemplo, origen igual al destino), cada campo muestra el suyo a la vez. Luego:
    - "Crear otra" con R-001 a la misma hora da **CRUCE_HORARIO**, con la reserva en conflicto y el tramo naranja en la agenda.
    - Con R-004 da **DISPOSITIVO_NO_APTO** ("Sensor LIDAR en falla").
 4. **Inicio y monitoreo (RF08–RF10).** Pulse "Iniciar ahora (demo)", o espere: arranca sola en segundos. En Monitoreo, R-001 sale de la base con el anillo naranja, deja su recorrido y una línea punteada hacia el destino. Las lecturas llegan cada 5 s y la fila destella con cada una.
 5. **Alertas (RF11).** En el Panel de demo, en "Provocar eventos", elija R-001 y pulse **Provocar falla** en el LIDAR: llega el aviso "R-001: sensor LIDAR en falla" y el marcador late. Luego **Batería 19 %** → **Aplicar**: llega una segunda alerta. **Reparar** y **80 %** lo normalizan. Para mostrar el retraso: **Pausar**, esperar a que pase el fin estimado + 1 min, y **Reanudar**.
 6. **Cierre y bitácora (RF08, RF12).** Cuando el robot vuelve a la base llega "Servicio finalizado" con enlace a la bitácora. Allí se ven la ruta, **Reproducir** recorrido, las incidencias (al hacer clic se ubican en el mapa) y el video guardado.
-7. **Auditoría (RNF09).** Quién creó el dispositivo y la reserva.
+7. **Auditoría (RNF09).** Empieza vacía: muestra quién creó el usuario, el dispositivo y la reserva de la demo.
 
 El Panel de demo también tiene una **Reserva rápida para ahora** (dispositivo → reservar e iniciar en un clic) y una **consola** con los comandos enviados y los eventos recibidos.
 
