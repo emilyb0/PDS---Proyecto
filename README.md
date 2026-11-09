@@ -242,3 +242,18 @@ backend/
 | `/health` dice `"simulador": "sin_base"` | Falta la ubicación base: cargue la semilla |
 | Después de `--reiniciar` los dispositivos muestran datos viejos | `docker compose restart api` |
 | El frontend (Vite) no conecta con un proxy a `localhost` | Apunte el proxy a `http://127.0.0.1:8010` |
+
+## Frontend
+
+Aplicación web (React + Vite + TypeScript) en `frontend/`. Con el backend arriba y la semilla cargada, en PowerShell:
+
+```powershell
+cd frontend
+npm install        # solo la primera vez
+npm run dev        # abre http://localhost:5173
+```
+
+Entre con `admin@campus.edu.co` / `Admin123*`. El proxy de Vite reenvía `/api` y `/health` a `http://127.0.0.1:8010`
+(otra dirección: `$env:API_URL = 'http://127.0.0.1:XXXX'; npm run dev`). `npm run build` verifica los tipos y genera
+`frontend/dist`. Pantallas, requisitos que cubre cada una y guion de la demo: [`docs/frontend.md`](docs/frontend.md).
+Observaciones para el backend: [`docs/pendientes-backend.md`](docs/pendientes-backend.md).
